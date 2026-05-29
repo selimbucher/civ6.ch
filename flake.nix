@@ -10,8 +10,32 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        web = pkgs.stdenv.mkDerivation (finalAttrs: {
+          pname = "civ6-web";
+          version = "0.0.1";
+          src = ./web;
+
+          nativeBuildInputs = [
+            pkgs.nodejs
+            pkgs.pnpmConfigHook
+            pkgs.pnpm
+          ];
+
+          pnpmDeps = pkgs.fetchPnpmDeps {
+            inherit (finalAttrs) pname version src;
+            fetcherVersion = 3;
+            hash = "sha256-nCdlmYQt2/7yzzNns0TiJYwAith7bHm8U+CIH3jKY5Q=";
+          };
+
+          buildPhase = "pnpm run build";
+          installPhase = "cp -r build $out";
+        });
       in
       {
+        packages.web = web;
+        packages.default = web;
+
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             nodejs
@@ -20,5 +44,34 @@
           ];
         };
       }
-    );
+    ) // {
+      nixosModules.default = { config, lib, pkgs, ... }:
+        let
+          cfg = config.services.civ6;
+          system = pkgs.stdenv.hostPlatform.system;
+          web = self.packages.${system}.web;
+        in {
+          options.services.civ6.enable = lib.mkEnableOption "civ6.ch";
+
+          config = lib.mkIf cfg.enable {
+            systemd.services.civ6-web = {
+              description = "civ6.ch SvelteKit server";
+              wantedBy = [ "multi-user.target" ];
+              after = [ "network.target" ];
+              serviceConfig = {
+                ExecStart = "${pkgs.nodejs}/bin/node ${web}/index.js";
+                Restart = "on-failure";
+                DynamicUser = true;
+                Environment = "PORT=3000";
+              };
+            };
+
+            services.caddy.virtualHosts."civ6.ch" = {
+              extraConfig = ''
+                reverse_proxy localhost:3000
+              '';
+            };
+          };
+        };
+    };
 }
