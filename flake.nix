@@ -135,6 +135,7 @@
                 Group = "civ6";
                 StateDirectory = "civ6";
                 Environment = [ "STORAGE_PATH=/var/lib/civ6" ];
+                TimeoutStopSec = 10;
               };
             };
 
@@ -155,6 +156,7 @@
                   "NODE_PATH=${web}/node_modules"
                   "BODY_SIZE_LIMIT=104857600"
                 ];
+                TimeoutStopSec = 10;
               };
             };
 
