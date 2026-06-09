@@ -10,29 +10,20 @@ UPDATE achievements SET difficulty = 1
     WHERE difficulty = 2 AND disabled = false AND id NOT IN (16, 18);
 
 -- New rare achievements
-INSERT INTO achievements (name, description, difficulty, game, stats, exclusive, disabled) VALUES
-    ('Unpolitical',
-     'End a game with at least 2000 diplomatic favor.',
-     2, '{"favor": {"min": 2000}}', '{}', false, false),
-
-    ('Fairy of Schorenhausen',
-     'End a game with at least 2000 science and 2000 culture per turn.',
-     2, '{"science": {"min": 2000}, "culture": {"min": 2000}}', '{}', false, false),
-
-    ('Farming Simulator',
-     'Achieve a winning streak of at least 10.',
-     2, '{}', '{"winning_streak": {"min": 10}}', false, false),
-
-    ('El Salvador',
-     'Achieve a non-capitulation victory without ever researching Mining.',
-     3, '{"victorious": true, "victory_type": {"not": true, "value": "Capitulation"}, "not_mining": true}',
-     '{}', false, false);
+INSERT INTO achievements (name, description, difficulty, exclusive, disabled) VALUES
+    ('Unpolitical',          'End a game with at least 2000 diplomatic favor.',                              2, false, false),
+    ('Fairy of Schorenhausen','End a game with at least 2000 science and 2000 culture per turn.',            2, false, false),
+    ('Farming Simulator',    'Achieve a winning streak of at least 10.',                                     2, false, false),
+    ('El Salvador',          'Achieve a non-capitulation victory without ever researching Mining.',          3, false, false);
 
 -- New common achievements — one per victory type (except Score and Territorial)
-INSERT INTO achievements (name, description, difficulty, game, stats, exclusive, disabled) VALUES
-    ('Conqueror',    'Win a Domination victory.',   0, '{"victorious": true, "victory_type": "Domination"}',  '{}', false, false),
-    ('Crusader',     'Win a Religious victory.',    0, '{"victorious": true, "victory_type": "Religious"}',   '{}', false, false),
-    ('Tech Pioneer', 'Win a Science victory.',      0, '{"victorious": true, "victory_type": "Science"}',     '{}', false, false),
-    ('Renaissance',  'Win a Culture victory.',      0, '{"victorious": true, "victory_type": "Culture"}',     '{}', false, false),
-    ('Statesman',    'Win a Diplomatic victory.',   0, '{"victorious": true, "victory_type": "Diplomatic"}',  '{}', false, false),
-    ('Ruthless',     'Win a Capitulation victory.', 0, '{"victorious": true, "victory_type": "Capitulation"}','{}', false, false);
+INSERT INTO achievements (name, description, difficulty, exclusive, disabled) VALUES
+    ('Conqueror',    'Win a Domination victory.',   0, false, false),
+    ('Crusader',     'Win a Religious victory.',    0, false, false),
+    ('Tech Pioneer', 'Win a Science victory.',      0, false, false),
+    ('Renaissance',  'Win a Culture victory.',      0, false, false),
+    ('Statesman',    'Win a Diplomatic victory.',   0, false, false),
+    ('Ruthless',     'Win a Capitulation victory.', 0, false, false);
+
+-- Drop dead JSON columns (logic lives in Go, not the DB)
+ALTER TABLE achievements DROP COLUMN IF EXISTS game, DROP COLUMN IF EXISTS stats;
