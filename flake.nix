@@ -151,6 +151,7 @@
                   "PGDATABASE=civ6"
                   "PGUSER=civ6"
                   "NODE_PATH=${web}/node_modules"
+                  "BODY_SIZE_LIMIT=104857600"
                 ];
               };
             };
@@ -158,6 +159,9 @@
             services.caddy = {
               enable = true;
               virtualHosts."civ6.ch".extraConfig = ''
+                request_body {
+                  max_size 100MB
+                }
                 reverse_proxy localhost:3000
               '';
             };
