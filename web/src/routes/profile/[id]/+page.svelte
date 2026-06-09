@@ -64,6 +64,7 @@
     };
 
     let { data } = $props();
+    const pid = $derived(data.player.id);
 
     function getRating(category: string) {
         return data.ratings.find((r: any) => r.category === category);
@@ -129,14 +130,14 @@
     );
 </script>
 
-<div class="mx-12 mb-12 flex flex-col gap-4">
+<div class="mx-3 md:mx-12 mb-12 flex flex-col gap-4">
 
     <!-- ── Hero ────────────────────────────────────────────────────────────── -->
     <div class="relative rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <!-- top accent bar -->
         <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-primary"></div>
 
-        <div class="flex items-center gap-8 px-10 py-8">
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-5 px-5 md:px-10 py-6 md:py-8">
             <!-- Avatar placeholder -->
             <div class="shrink-0 relative">
                 <div class="h-20 w-20 rounded-full border-2 border-card-edge bg-card-2 flex items-center justify-center text-font-dimest">
@@ -183,7 +184,7 @@
 
             <!-- Big rating stat -->
             {#if overallRating}
-                <div class="shrink-0 text-right">
+                <div class="shrink-0 text-center md:text-right">
                     <div class="font-fancy text-5xl font-bold text-font-clear">
                         {Math.round(Number(overallRating.rating))}
                     </div>
@@ -200,10 +201,10 @@
     </div>
 
     <!-- ── Body ────────────────────────────────────────────────────────────── -->
-    <div class="flex gap-4 items-start">
+    <div class="flex flex-col md:flex-row gap-4 items-start">
 
         <!-- ── Sidebar ───────────────────────────────────────────────────── -->
-        <div class="w-64 shrink-0 flex flex-col gap-4">
+        <div class="w-full md:w-64 md:shrink-0 flex flex-col gap-4">
 
             <!-- Category ratings -->
             <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
@@ -282,29 +283,28 @@
                 {@const daysSinceLast = lastGame ? Math.floor((now.getTime() - lastGame.getTime()) / (1000 * 60 * 60 * 24)) : 0}
                 {@const daysSinceFirst = firstGame ? Math.floor((now.getTime() - firstGame.getTime()) / (1000 * 60 * 60 * 24)) : 0}
                 <div class="rounded-2xl border border-primary/15 bg-card shadow-md shadow-darken p-4 flex flex-col gap-2">
-                    
-                    {#if data.player.name === 'Linus Moser höchstpersönlich'}
+                    {#if pid === 2}
                         <span class="text-xs text-center text-font-dim">Was robbed of the Colosseum Wonder:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">{data.personalStats.colosseum_robbed} times</span>
-                    {:else if data.player.name === 'Nicolas Mezger'}
+                    {:else if pid === 4}
                         <span class="text-xs text-center text-font-dim">Took the diplomatic exit:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">{data.personalStats.diplomatic_wins} {data.personalStats.diplomatic_wins === 1 ? 'time' : 'times'}</span>
-                    {:else if data.player.name === 'Sancho Wablo'}
+                    {:else if pid === 5}
                         <span class="text-xs text-center text-font-dim">Hasn't touched this game since:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">{daysSinceLast} days</span>
-                    {:else if data.player.name === 'Sébastien Kämpf'}
+                    {:else if pid === 3}
                         <span class="text-xs text-center text-font-dim">Plays Civ VI on a toaster since:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">{daysSinceFirst} days</span>
-                    {:else if data.player.name === 'Tim Malin Hans Többen'}
+                    {:else if pid === 7}
                         <span class="text-xs text-center text-font-dim">Has founded:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">{data.personalStats.cities_founded} cities</span>
-                    {:else if data.player.name === 'Yannis Angehrn'}
+                    {:else if pid === 6}
                         <span class="text-xs text-center text-font-dim">Has won a game:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">{data.personalStats.wins} {data.personalStats.wins === 1 ? 'time' : 'times'}</span>
-                    {:else if data.player.name === 'Stefan Morgenthaler'}
+                    {:else if pid === 8}
                         <span class="text-xs text-center text-font-dim">Asked to start with 1200 Elo:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">1 times</span>
-                    {:else if data.player.name === 'Selim L. Bucher'}
+                    {:else if pid === 1}
                         <span class="text-xs text-center text-font-dim">Spent cash on API keys for this website:</span>
                         <span class="text-lg text-center font-fancy text-gradient-primary font-black">85 CHF</span>
                     {/if}
@@ -347,7 +347,7 @@
 
             <!-- Rating history chart -->
             {#if data.ratingHistory.length > 1}
-                <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken px-5 pt-5 pb-3">
+                <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken px-5 pt-5 pb-3 overflow-hidden">
                     <div class="mb-3">
                         <span class="font-fancy text-xs font-semibold tracking-widest uppercase text-font-dimer">
                             Rating History
@@ -358,7 +358,7 @@
             {/if}
 
             <!-- Statistics row -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 <!-- Victory types -->
                 {#if data.victoryStats.length > 0}

@@ -98,6 +98,8 @@ func (s *server) handleParse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filename := r.Header.Get("X-Filename")
+
 	settings := civ6save.ParseSettings(data)
 	players := civ6save.ParsePlayers(data)
 
@@ -115,7 +117,7 @@ func (s *server) handleParse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	gameID, err := insertGame(r.Context(), s.pool, settings, turn, players, state, hashStr)
+	gameID, err := insertGame(r.Context(), s.pool, settings, turn, players, state, hashStr, filename)
 	if err != nil {
 		log.Printf("insert: %v", err)
 		http.Error(w, fmt.Sprintf("database error: %v", err), http.StatusInternalServerError)
@@ -198,15 +200,19 @@ func (s *server) handleGetSave(w http.ResponseWriter, r *http.Request) {
 	}
 	defer gr.Close()
 
-	// Look up turn count for a meaningful filename.
 	var turns int16
+	var saveFilename *string
 	s.pool.QueryRow(r.Context(),
-		`SELECT COALESCE(turns, 0) FROM games WHERE id = $1`, id,
-	).Scan(&turns)
+		`SELECT COALESCE(turns, 0), save_filename FROM games WHERE id = $1`, id,
+	).Scan(&turns, &saveFilename)
+
+	filename := fmt.Sprintf("AutoSave_%04d.Civ6Save", turns)
+	if saveFilename != nil && *saveFilename != "" {
+		filename = *saveFilename
+	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition",
-		fmt.Sprintf(`attachment; filename="AutoSave_%04d.Civ6Save"`, turns))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, filename))
 	io.Copy(w, gr)
 }
 
@@ -399,7 +405,7 @@ func (s *server) handleRecalculate(w http.ResponseWriter, r *http.Request) {
 
 // ── DB insert ─────────────────────────────────────────────────────────────────
 
-func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameSettings, turn int, players []civ6save.Player, state *civ6save.GameState, saveHash string) (int, error) {
+func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameSettings, turn int, players []civ6save.Player, state *civ6save.GameState, saveHash, saveFilename string) (int, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return 0, err
@@ -412,25 +418,46 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 	allowReligious := sliceContains(settings.EnabledVictories, "VICTORY_RELIGIOUS")
 	allowCulture := sliceContains(settings.EnabledVictories, "VICTORY_CULTURE")
 	allowDiplomatic := sliceContains(settings.EnabledVictories, "VICTORY_DIPLOMATIC")
-	shuffleTechs := sliceContains(settings.Modes, "TREE_RANDOMIZER")
+	shuffleTechs      := sliceContains(settings.Modes, "TREE_RANDOMIZER")
+	secretSocieties   := sliceContains(settings.Modes, "SECRETSOCIETIES")
+	heroesAndLegends  := sliceContains(settings.Modes, "HEROES_AND_LEGENDS")
+	apocalypseMode    := sliceContains(settings.Modes, "APOCALYPSE")
+	monopolies        := sliceContains(settings.Modes, "MONOPOLIES")
+	barbarianClans    := sliceContains(settings.Modes, "BARBARIAN_CLANS")
+	zombieDefense     := sliceContains(settings.Modes, "ZOMBIE_DEFENSE")
 
-	mapSize := stripPrefix(settings.MapSize, "MAPSIZE_")
+	mapSize   := stripPrefix(settings.MapSize,   "MAPSIZE_")
 	gameSpeed := stripPrefix(settings.GameSpeed, "GAMESPEED_")
+	era        := stripPrefix(settings.CurrentEra, "ERA_")
+	ruleset    := stripPrefix(settings.Ruleset,    "RULESET_")
+	difficulty := stripPrefix(settings.Difficulty, "DIFFICULTY_")
 
 	var gameID int
 	err = tx.QueryRow(ctx, `
 		INSERT INTO games (
 			victory_type, turns, map, map_size, game_speed,
 			shuffle_techs, allow_conquest, allow_score, allow_science,
-			allow_religious, allow_culture, allow_diplomatic, tmp, save_hash
+			allow_religious, allow_culture, allow_diplomatic,
+			secret_societies, heroes_and_legends, apocalypse_mode, monopolies,
+			barbarian_clans, zombie_defense,
+			era, ruleset, difficulty,
+			tmp, save_hash, save_filename
 		) VALUES (
 			'Unknown', $1, $2, $3, $4,
-			$5, $6, $7, $8, $9, $10, $11, true, $12
+			$5, $6, $7, $8, $9, $10, $11,
+			$12, $13, $14, $15,
+			$16, $17,
+			$18, $19, $20,
+			true, $21, $22
 		) RETURNING id`,
 		int16(turn),
 		nullStr(settings.Map), nullStr(mapSize), nullStr(gameSpeed),
 		shuffleTechs, allowConquest, allowScore, allowScience,
-		allowReligious, allowCulture, allowDiplomatic, nullStr(saveHash),
+		allowReligious, allowCulture, allowDiplomatic,
+		secretSocieties, heroesAndLegends, apocalypseMode, monopolies,
+		barbarianClans, zombieDefense,
+		nullStr(era), nullStr(ruleset), nullStr(difficulty),
+		nullStr(saveHash), nullStr(saveFilename),
 	).Scan(&gameID)
 	if err != nil {
 		return 0, err

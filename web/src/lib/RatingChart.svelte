@@ -98,8 +98,8 @@
                     drag: { x: false, y: false },
                     points: {
                         size:   ((_u: any, _si: any) => 10) as any,
-                        fill:   ((_u: any, _si: any, di: number) => {
-                            const w = wins[di];
+                        fill:   ((u: any, _si: any) => {
+                            const w = wins[u.cursor.idx];
                             return w === null ? 'transparent'
                                  : w          ? '#6ab355'
                                              : '#ef5a34';

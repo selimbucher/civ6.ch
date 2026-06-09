@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     if (isNaN(id)) error(400, 'Invalid game ID');
 
     const [game] = await sql`
-        SELECT id, turns, map, map_size, game_speed, victory_type, tmp, has_map
+        SELECT id, turns, map, map_size, game_speed, victory_type, category, tmp, has_map
         FROM games WHERE id = ${id}
     `;
     if (!game) error(404, 'Game not found');
@@ -149,7 +149,6 @@ export const actions: Actions = {
             await sql`
                 UPDATE games SET
                     victory_type = ${victoryType},
-                    tmp          = false,
                     tmp          = false
                 WHERE id = ${id}
             `;

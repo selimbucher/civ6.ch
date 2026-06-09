@@ -24,10 +24,10 @@
 
 <svelte:window onclick={() => dropdownOpen = false} />
 
-<div class="flex flex-col">
-	<header class="w-full relative h-16 flex justify-between px-12 items-center mb-4 bg-background/60 z-50 backdrop-blur-sm">
+<div class="flex flex-col min-h-dvh">
+	<header class="w-full relative h-16 flex justify-between px-4 md:px-12 items-center bg-background/60 z-50 backdrop-blur-sm">
 		<a href="/" class="text-3xl font-bold z-10 hover:text-font-clear transition-colors duration-120 ease-out font-fancy" style="text-shadow: 1px 1px 0px var(--color-primary-shadow);">civ6.ch</a>
-		<nav class="absolute left-0 flex w-full gap-6 justify-center p-1 z-9">
+		<nav class="absolute left-0 hidden md:flex w-full gap-6 justify-center p-1 z-9">
 			{#each links as link}
 				<a href={link.href} class="relative text-m font-semibold tracking-wider hover:text-font-clear transition-colors duration-150 ease-in-out group font-fancy">
 					{link.label}
@@ -91,7 +91,17 @@
 		</div>
 	</header>
 
-	<main class="flex-1 flex flex-col">
+	<!-- Mobile nav strip -->
+	<nav class="md:hidden flex border-b border-card-edge">
+		{#each links as link}
+			<a href={link.href}
+			   class="flex-1 text-center font-fancy text-xs py-3 text-font-dimest hover:text-font-clear transition-colors duration-150">
+				{link.label}
+			</a>
+		{/each}
+	</nav>
+
+	<main class="flex-1 flex flex-col mt-4 md:mt-4">
 		{@render children()}
 	</main>
 </div>

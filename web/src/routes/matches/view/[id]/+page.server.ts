@@ -29,6 +29,16 @@ export const load: PageServerLoad = async ({ params }) => {
             g.allow_religious,
             g.allow_culture,
             g.allow_diplomatic,
+            g.secret_societies,
+            g.heroes_and_legends,
+            g.apocalypse_mode,
+            g.monopolies,
+            g.barbarian_clans,
+            g.zombie_defense,
+            g.era,
+            g.ruleset,
+            g.difficulty,
+            g.save_filename,
             json_agg(
                 json_build_object(
                     'player_id',           gp.player_id,

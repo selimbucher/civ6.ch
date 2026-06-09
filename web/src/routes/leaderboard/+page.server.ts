@@ -12,7 +12,16 @@ export async function load({ url }) {
             COALESCE(pr.rd, 1500) as rd,
             COALESCE(ps.games, 0) as games,
             COALESCE(ps.wins, 0) as wins,
-            COALESCE(ps.streak, 0) as streak
+            COALESCE(ps.streak, 0) as streak,
+            (
+                SELECT gp2.leader
+                FROM game_players gp2
+                JOIN games g2 ON g2.id = gp2.game_id AND g2.tmp = false
+                WHERE gp2.player_id = p.id AND gp2.leader IS NOT NULL
+                GROUP BY gp2.leader
+                ORDER BY COUNT(*) DESC
+                LIMIT 1
+            ) as top_leader
         FROM players p
         LEFT JOIN player_ratings pr ON pr.player_id = p.id AND pr.category = 'overall'
         LEFT JOIN player_stats ps ON ps.player_id = p.id AND ps.category = 'overall'

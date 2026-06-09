@@ -21,7 +21,7 @@
 
     import cityIcon from '$lib/assets/icons/emblems/city.png';
 
-    import { CloudDownload, MapPin, Map, Gauge, FlaskRound } from '@lucide/svelte';
+    import { CloudDownload, MapPin, Map, Gauge, Clock, Layers, Swords } from '@lucide/svelte';
 
     import type { PageData } from './$types';
 
@@ -104,6 +104,16 @@
                 .join(' ');
     }
 
+    function rulesetLabel(r: string | null | undefined): string {
+        if (!r) return '—';
+        const map: Record<string, string> = {
+            STANDARD:    'Standard',
+            EXPANSION_1: 'Rise & Fall',
+            EXPANSION_2: 'Gathering Storm',
+        };
+        return map[r] ?? normaliseLabel(r);
+    }
+
     function normaliseCityName(name: string): string {
         let s = name;
         let isLoc = false;
@@ -163,6 +173,18 @@
     }
 
     const teams = $derived(getTeams(game.players));
+    const hasCities = $derived(game.players.some((p: any) => p.cities?.length > 0));
+    const hasYields = $derived(game.players.some((p: any) => p.score != null));
+
+    const gameModes = $derived([
+        { enabled: game.shuffle_techs,      label: 'Tech Shuffle',     color: 'text-science border-science/30 bg-science/10' },
+        { enabled: game.secret_societies,   label: 'Secret Societies', color: 'text-secondary border-secondary/30 bg-secondary/10' },
+        { enabled: game.heroes_and_legends, label: 'Heroes & Legends', color: 'text-font-good border-font-good/30 bg-font-good/10' },
+        { enabled: game.apocalypse_mode,    label: 'Apocalypse',       color: 'text-font-bad border-font-bad/30 bg-font-bad/10' },
+        { enabled: game.monopolies,         label: 'Monopolies',       color: 'text-gold-1 border-gold-1/30 bg-gold-1/10' },
+        { enabled: game.barbarian_clans,    label: 'Barbarian Clans',  color: 'text-army-1 border-army-1/30 bg-army-1/10' },
+        { enabled: game.zombie_defense,     label: 'Zombie Defence',   color: 'text-font-bad border-font-bad/30 bg-font-bad/10' },
+    ].filter(m => m.enabled));
 
     const victoryConditions = $derived([
         { icon: dominationv,  allowed: game.allow_conquest   ?? true, label: 'Domination' },
@@ -174,13 +196,13 @@
     ]);
 </script>
 
-<div class="mx-12 mb-12 flex flex-col gap-4">
+<div class="mx-3 md:mx-12 mb-12 flex flex-col gap-4">
 
     <!-- ── Top section ───────────────────────────────────────────────────── -->
-    <div class="flex gap-4 items-start">
+    <div class="flex flex-col md:flex-row gap-4 items-start">
 
         <!-- Left: game header + players -->
-        <div class="flex flex-col gap-4 w-[30rem] shrink-0">
+        <div class="flex flex-col gap-4 w-full md:w-[30rem] md:shrink-0">
 
             <!-- Game header -->
             <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
@@ -263,7 +285,7 @@
         <div class="flex-1 flex flex-col gap-4 min-w-0">
 
             <!-- Map -->
-            <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
+            <div class="rounded-2xl {hasMap ? '' : 'border border-card-edge bg-card shadow-md shadow-darken'}  overflow-hidden">
                 {#if hasMap}
                     <img src="/files/maps/{game.id}" alt="" class="w-full block" />
                 {:else}
@@ -280,20 +302,47 @@
                 <!-- Game settings -->
                 <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken p-4 flex flex-col gap-3">
                     <span class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest">Settings</span>
-                    <div class="flex flex-col gap-2">
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-2">
+                        {#if game.map}
                         <div class="flex items-center gap-2 text-sm text-font-dim">
-                            <MapPin class="h-3.5 w-3.5 text-font-dimest shrink-0" />{game.map ?? '—'}
+                            <MapPin class="h-3.5 w-3.5 text-font-dimest shrink-0" /><span class="truncate">{game.map}</span>
                         </div>
+                        {/if}
+                        {#if game.map_size}
                         <div class="flex items-center gap-2 text-sm text-font-dim">
-                            <Map class="h-3.5 w-3.5 text-font-dimest shrink-0" />{normaliseLabel(game.map_size)}
+                            <Map class="h-3.5 w-3.5 text-font-dimest shrink-0" /><span class="truncate">{normaliseLabel(game.map_size)}</span>
                         </div>
+                        {/if}
+                        {#if game.game_speed}
                         <div class="flex items-center gap-2 text-sm text-font-dim">
-                            <Gauge class="h-3.5 w-3.5 text-font-dimest shrink-0" />{normaliseLabel(game.game_speed)}
+                            <Gauge class="h-3.5 w-3.5 text-font-dimest shrink-0" /><span class="truncate">{normaliseLabel(game.game_speed)}</span>
                         </div>
+                        {/if}
+                        {#if game.difficulty}
                         <div class="flex items-center gap-2 text-sm text-font-dim">
-                            <FlaskRound class="h-3.5 w-3.5 text-font-dimest shrink-0" />{game.shuffle_techs ? 'Shuffled Techs' : 'Default Techs'}
+                            <Swords class="h-3.5 w-3.5 text-font-dimest shrink-0" /><span class="truncate">{normaliseLabel(game.difficulty)}</span>
                         </div>
+                        {/if}
+                        {#if game.era}
+                        <div class="flex items-center gap-2 text-sm text-font-dim">
+                            <Clock class="h-3.5 w-3.5 text-font-dimest shrink-0" /><span class="truncate">{normaliseLabel(game.era)} Era</span>
+                        </div>
+                        {/if}
+                        {#if game.ruleset}
+                        <div class="flex items-center gap-2 text-sm text-font-dim">
+                            <Layers class="h-3.5 w-3.5 text-font-dimest shrink-0" /><span class="truncate">{rulesetLabel(game.ruleset)}</span>
+                        </div>
+                        {/if}
                     </div>
+                    {#if gameModes.length > 0}
+                        <div class="flex flex-wrap gap-1.5 pt-2 mt-1 border-t border-card-edge">
+                            {#each gameModes as mode}
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border {mode.color}">
+                                    {mode.label}
+                                </span>
+                            {/each}
+                        </div>
+                    {/if}
                 </div>
 
                 <!-- Victory conditions -->
@@ -310,20 +359,20 @@
                 </div>
 
                 <!-- Save file -->
-                <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken p-4 flex flex-col items-center justify-center gap-3">
+                <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken p-3 flex flex-col items-center justify-center gap-2.5">
                     {#if hasSave}
-                        <CloudDownload strokeWidth={1.2} class="h-7 w-7 text-font-dim" />
-                        <div class="text-xs text-font-dimer text-center leading-snug">
-                            AutoSave_{String(game.turns).padStart(4, '0')}.Civ6Save
+                        <CloudDownload strokeWidth={1.2} class="h-9 w-9 text-font-dim" />
+                        <div class="text-sm text-font-dimer text-center leading-snug mb-2">
+                            {game.save_filename ?? `AutoSave_${String(game.turns).padStart(4, '0')}.Civ6Save`}
                         </div>
                         <a
                             href="/files/saves/{game.id}"
-                            download="AutoSave_{String(game.turns).padStart(4, '0')}.Civ6Save"
-                            class="rounded-lg opacity-85 bg-gradient-primary text-black text-xs font-semibold px-3 py-1.5 hover:opacity-100 transition-opacity duration-250"
+                            download={game.save_filename ?? `AutoSave_${String(game.turns).padStart(4, '0')}.Civ6Save`}
+                            class="rounded-lg border border-primary text-primary text-xs font-semibold px-3 py-1.5 hover:bg-primary hover:text-black transition-colors duration-200"
                         >Download</a>
                     {:else}
-                        <CloudDownload strokeWidth={1} class="h-7 w-7 text-font-dimest" />
-                        <span class="text-xs text-font-dimest">Not available</span>
+                        <CloudDownload strokeWidth={1} class="h-9 w-9 text-font-dimest" />
+                        <span class="text-sm text-font-dimest">Not available</span>
                     {/if}
                 </div>
 
@@ -332,6 +381,7 @@
     </div>
 
     <!-- ── Player Yields ─────────────────────────────────────────────────── -->
+    {#if hasYields}
     <div class="flex items-center gap-4">
         <div class="h-px flex-1 bg-card-edge"></div>
         <span class="font-fancy text-xs tracking-widest uppercase text-font-dimest">Player Yields</span>
@@ -341,25 +391,25 @@
         <table class="w-full">
             <thead>
                 <tr class="border-b border-card-edge">
-                    <th class="w-12"></th>
-                    <th class="text-left px-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Player</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Score</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Pop</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Science</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Culture</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Food</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Prod</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Gold</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Faith</th>
-                    <th class="text-right pr-3 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Tourism</th>
-                    <th class="text-right pr-5 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Favor</th>
+                    <th class="w-10"></th>
+                    <th class="text-left px-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Player</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Score</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Pop</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Sci</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Cult</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Food</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Prod</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Gold</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Faith</th>
+                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Tour</th>
+                    <th class="text-right pr-3 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Favor</th>
                 </tr>
             </thead>
             <tbody>
                 {#each game.players as player}
                     <tr class="relative not-last:border-b border-card-edge hover:bg-select transition-colors duration-100">
                         <td class="py-2 pl-2 pr-0">
-                            <div class="h-9 w-9 rounded-full bg-card-edge overflow-hidden">
+                            <div class="h-7 w-7 rounded-full bg-card-edge overflow-hidden">
                                 {#if leaderPortrait(player.leader)}
                                     <img src={leaderPortrait(player.leader)!} alt=""
                                          class="h-full w-full object-cover"
@@ -367,35 +417,38 @@
                                 {/if}
                             </div>
                         </td>
-                        <td class="px-3 py-3">
+                        <td class="px-2 py-2">
                             <a href="/profile/{player.player_id}"
-                               class="{player.winner ? 'text-font-clear font-semibold' : 'text-font-dim'} hover:text-font-clear transition-colors duration-150 text-sm">
+                               class="{player.winner ? 'text-font-clear font-semibold' : 'text-font-dim'} hover:text-font-clear transition-colors duration-150 text-xs">
                                 {player.name}
                                 {#if player.winner}
-                                    <img src={universalv} alt="" class="ml-0.5 inline-block h-4 opacity-75 mb-[0.05rem]" />
+                                    <img src={universalv} alt="" class="ml-0.5 inline-block h-3.5 opacity-75 mb-[0.05rem]" />
                                 {/if}
                             </a>
                             {#if player.pseudo_name}
-                                <div class="text-xs text-font-dimest mt-0.5">{player.pseudo_name}</div>
+                                <div class="text-[10px] text-font-dimest mt-0.5">{player.pseudo_name}</div>
                             {/if}
                         </td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={scoreIcon}      alt="" class="h-5 shrink-0" /><span class="text-score       text-sm font-bold tabular-nums">{fmt(player.score)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={populationIcon} alt="" class="h-5 shrink-0" /><span class="text-font-clear  text-sm font-bold tabular-nums">{fmt(player.population)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={scienceIcon}    alt="" class="h-5 shrink-0" /><span class="text-science     text-sm font-bold tabular-nums">{fmt(player.science)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={cultureIcon}    alt="" class="h-5 shrink-0" /><span class="text-culture     text-sm font-bold tabular-nums">{fmt(player.culture)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={foodIcon}       alt="" class="h-5 shrink-0" /><span class="text-food        text-sm font-bold tabular-nums">{fmt(player.food)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={productionIcon} alt="" class="h-5 shrink-0" /><span class="text-production  text-sm font-bold tabular-nums">{fmt(player.production)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={goldIcon}       alt="" class="h-5 shrink-0" /><span class="text-gold        text-sm font-bold tabular-nums">{fmt(player.gold)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={faithIcon}      alt="" class="h-5 shrink-0" /><span class="text-faith       text-sm font-bold tabular-nums">{fmt(player.faith)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={tourismIcon}    alt="" class="h-4 shrink-0" /><span class="text-production  text-sm font-bold tabular-nums">{fmt(player.tourism)}</span></span></td>
-                        <td class="pr-5 py-3"><span class="flex items-center justify-end gap-1"><img src={favorIcon}      alt="" class="h-5 shrink-0" /><span class="text-diplo       text-sm font-bold tabular-nums">{fmt(player.favor)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={scoreIcon}      alt="" class="h-4 shrink-0" /><span class="text-score       text-xs font-bold tabular-nums">{fmt(player.score)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={populationIcon} alt="" class="h-4 shrink-0" /><span class="text-font-clear  text-xs font-bold tabular-nums">{fmt(player.population)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={scienceIcon}    alt="" class="h-4 shrink-0" /><span class="text-science     text-xs font-bold tabular-nums">{fmt(player.science)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={cultureIcon}    alt="" class="h-4 shrink-0" /><span class="text-culture     text-xs font-bold tabular-nums">{fmt(player.culture)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={foodIcon}       alt="" class="h-4 shrink-0" /><span class="text-food        text-xs font-bold tabular-nums">{fmt(player.food)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={productionIcon} alt="" class="h-4 shrink-0" /><span class="text-production  text-xs font-bold tabular-nums">{fmt(player.production)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={goldIcon}       alt="" class="h-4 shrink-0" /><span class="text-gold        text-xs font-bold tabular-nums">{fmt(player.gold)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={faithIcon}      alt="" class="h-4 shrink-0" /><span class="text-faith       text-xs font-bold tabular-nums">{fmt(player.faith)}</span></span></td>
+                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={tourismIcon}    alt="" class="h-3.5 shrink-0" /><span class="text-production  text-xs font-bold tabular-nums">{fmt(player.tourism)}</span></span></td>
+                        <td class="pr-3 py-2"><span class="flex items-center justify-end gap-0.5"><img src={favorIcon}      alt="" class="h-4 shrink-0" /><span class="text-diplo       text-xs font-bold tabular-nums">{fmt(player.favor)}</span></span></td>
                     </tr>
                 {/each}
             </tbody>
         </table>
     </div>
 
+    {/if}
+
     <!-- ── Cities ───────────────────────────────────────────────────────── -->
+    {#if hasCities}
     <div class="flex items-center gap-4">
         <div class="h-px flex-1 bg-card-edge"></div>
         <span class="font-fancy text-xs tracking-widest uppercase text-font-dimest">Cities</span>
@@ -478,4 +531,5 @@
             </tbody>
         </table>
     </div>
+    {/if}
 </div>

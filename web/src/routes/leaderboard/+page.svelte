@@ -20,9 +20,72 @@
     i === 1 ? 'text-[#B0B8C8]' :
     i === 2 ? 'text-[#CD7F32]' :
     'text-font-dimest';
+
+  const leaderAssets = import.meta.glob<{ default: string }>(
+    '$lib/assets/icons/leaders/*.webp', { eager: true }
+  );
+  function leaderPortrait(leader: string | null): string | null {
+    if (!leader) return null;
+    const slug = leader.trim().replace(/\s+/g, '_');
+    const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const keys = Object.keys(leaderAssets);
+    const key =
+      keys.find(k => k.includes(`/${slug}_(Civ6).`)) ??
+      keys.find(k => k.toLowerCase().includes(`/${slug.toLowerCase()}_(civ6).`)) ??
+      keys.find(k => norm(k).includes(`/${norm(slug)}_(civ6).`));
+    return key ? leaderAssets[key].default : null;
+  }
+
+  // order: 2nd left, 1st center, 3rd right
+  const PODIUM = [
+    { idx: 1, color: '#B0B8C8',              blockH: 56,  portraitPx: 64  },
+    { idx: 0, color: 'var(--color-primary)', blockH: 88,  portraitPx: 80  },
+    { idx: 2, color: '#CD7F32',              blockH: 36,  portraitPx: 52  },
+  ];
 </script>
 
-<div class="px-12 pb-12  gap-4 flex justify-center items-center w-full h-full fixed top-0">
+<div class="px-4 md:px-12 pb-12 pt-2 flex flex-col gap-6 w-full flex-1">
+
+  <!-- ── Podium ───────────────────────────────────────────────────────── -->
+  <div class="flex items-end justify-center gap-6">
+    {#each PODIUM as { idx, color, blockH, portraitPx }}
+      {@const player = data.overall[idx]}
+      {#if player}
+        <div class="flex flex-col items-center gap-2" style="width: 140px">
+          <!-- Portrait -->
+          <div class="rounded-full overflow-hidden bg-card-edge shrink-0"
+               style="width:{portraitPx}px; height:{portraitPx}px;
+                      box-shadow: 0 0 0 2px var(--color-card), 0 0 0 3.5px color-mix(in srgb, {color} 50%, transparent)">
+            {#if leaderPortrait(player.top_leader)}
+              <img src={leaderPortrait(player.top_leader)} alt=""
+                   class="w-full h-full object-cover" />
+            {:else}
+              <div class="w-full h-full"></div>
+            {/if}
+          </div>
+          <!-- Name + rating -->
+          <div class="text-center">
+            <a href="/profile/{player.id}"
+               class="font-semibold text-font-dim hover:text-font-clear transition-colors duration-150 text-sm leading-tight">
+              {player.name}
+            </a>
+            <div class="text-xs text-font-dimest tabular-nums">{Math.round(Number(player.rating))}</div>
+          </div>
+          <!-- Step block -->
+          <div class="w-full rounded-t-xl flex items-center justify-center"
+               style="height:{blockH}px;
+                      background: color-mix(in srgb, {color} 6%, transparent);
+                      border: 1px solid color-mix(in srgb, {color} 18%, transparent);
+                      border-bottom: none">
+            <span class="font-fancy font-black text-2xl" style="color:{color}; opacity:0.65">{idx + 1}</span>
+          </div>
+        </div>
+      {/if}
+    {/each}
+  </div>
+
+  <!-- ── Tables ───────────────────────────────────────────────────────── -->
+  <div class="flex flex-col md:flex-row gap-4 flex-1">
 
   <!-- ── Overall (always visible, left) ──────────────────────────────── -->
   <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
@@ -44,7 +107,7 @@
               <span class="text-font-dimest text-sm flex justify-center items-center ml-3">{i + 1}</span>
             {/if}
             {#if i == 0}
-              <span  class="text-sm flex justify-center items-center text-primary drop-shadow-sm drop-shadow-primary ml-3 font-medium" >1</span>
+              <span class="text-sm flex justify-center items-center text-primary drop-shadow-sm drop-shadow-primary ml-3 font-medium">1</span>
             {/if}
             </td>
             <td class="px-3 py-3">
@@ -88,17 +151,19 @@
   <!-- ── Categorical (right) ──────────────────────────────────────────── -->
   <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
     <!-- Tab bar -->
-    <div class="flex items-center gap-1.5 px-5 py-3 border-b border-card-edge pb-3.5">
-      <span class="font-fancy tracking-wide">Category</span>
+    <div class="flex items-center border-b border-card-edge px-1">
+      <span class="font-fancy text-sm tracking-wide text-font-dimer px-3">Category</span>
       <div class="grow"></div>
       {#each tabs as tab}
         <button
           onclick={() => switchTab(tab)}
-          class="font-fancy text-xs px-4 py-1.5 rounded-full transition-colors duration-150 ease-out cursor-pointer
-                 {active === tab
-                   ? 'bg-gradient-primary text-black font-semibold'
-                   : 'text-font-dim hover:text-font-clear hover:bg-select'}"
-        >{tab}</button>
+          class="relative px-4 py-3 font-fancy text-sm tracking-wide transition-colors duration-150 cursor-pointer
+                 {active === tab ? 'text-font-clear' : 'text-font-dimest hover:text-font-dim'}">
+          {tab}
+          {#if active === tab}
+            <span class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-gradient-primary"></span>
+          {/if}
+        </button>
       {/each}
     </div>
     <table class="w-full">
@@ -153,4 +218,5 @@
     </table>
   </div>
 
+  </div> <!-- end tables row -->
 </div>

@@ -97,7 +97,7 @@ select:focus-visible {
     --color-secondary: hsl(255, 73%, 71%);
 
     --color-card: hsl(240deg 0.5% 6%);
-    --color-card-2: hsl(0deg 0% 12%);
+    --color-card-2: hsl(0deg 0% 8%);
     --color-card-3: hsl(0deg 0% 22%);
     --color-card-edge: hsl(0deg 0% 14%);
     --color-card-edge-2: hsl(0deg 0% 16%);

@@ -185,7 +185,7 @@
     ]);
 </script>
 
-<div class="mx-12 mb-12 flex flex-col gap-6">
+<div class="mx-4 md:mx-12 mb-12 flex flex-col gap-6">
 
     <!-- ── Page Header ──────────────────────────────────────────────────── -->
     <div class="relative rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
@@ -205,7 +205,7 @@
     </div>
 
     <!-- ── Global Stats ─────────────────────────────────────────────────── -->
-    <div class="grid grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken p-5 flex flex-col gap-1">
             <span class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest">Total Games</span>
             <span class="font-fancy text-4xl font-bold text-gradient-primary">{globalStats.total_games}</span>
@@ -234,7 +234,7 @@
             <span class="font-fancy text-xs font-semibold tracking-widest uppercase text-font-dimest">Order of Merit</span>
             <div class="h-px flex-1 bg-card-edge"></div>
         </div>
-        <div class="grid grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             {#each awards as award}
                 {#if award.player}
                     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden flex flex-col">
@@ -265,7 +265,7 @@
     </div>
 
     <!-- ── Bottom Section ───────────────────────────────────────────────── -->
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         <!-- Victory Chronicle -->
         <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken p-5 flex flex-col gap-4">

@@ -84,11 +84,28 @@
     'teams': 'Teams',
     '1v1': '1v1',
   };
+
+  const TABS = ['all', 'ffa', '1v1', 'teams'] as const;
+  type Tab = (typeof TABS)[number];
+  const tabLabel: Record<Tab, string> = { all: 'All', ffa: 'FFA', '1v1': '1v1', teams: 'Teams' };
+
+  let activeTab = $state<Tab>('all');
+
+  const filteredGames = $derived(
+    activeTab === 'all' ? data.games : data.games.filter((g: any) => g.category === activeTab)
+  );
+
+  const counts = $derived(
+    Object.fromEntries(TABS.map(t => [t, t === 'all'
+      ? data.games.length
+      : data.games.filter((g: any) => g.category === t).length
+    ])) as Record<Tab, number>
+  );
 </script>
 
 <!-- Awaiting Confirmation -->
 {#if data.unconfirmed && data.unconfirmed.length > 0}
-  <div class="mx-12 mb-5">
+  <div class="mx-3 md:mx-12 mb-5">
     <div class="rounded-2xl border border-primary/20 bg-primary/5 shadow-sm shadow-darken overflow-hidden">
       <div class="flex items-center gap-2 px-5 py-3 border-b border-primary/15">
         <AlertCircle class="h-3.5 w-3.5 text-primary" strokeWidth={2} />
@@ -136,18 +153,39 @@
 {/if}
 
 <!-- Game list -->
-<div class="flex flex-col mx-12 mb-12 bg-card border border-card-edge rounded-2xl shadow-md shadow-darken overflow-hidden">
-  {#each data.games as game}
+<div class="flex flex-col mx-3 md:mx-12 mb-12 bg-card border border-card-edge rounded-2xl shadow-md shadow-darken overflow-hidden">
+
+  <!-- Tab bar -->
+  <div class="flex items-center border-b border-card-edge px-1">
+    {#each TABS as tab}
+      <button
+        onclick={() => activeTab = tab}
+        class="relative px-4 py-3 font-fancy text-sm tracking-wide transition-colors duration-150 cursor-pointer
+               {activeTab === tab ? 'text-font-clear' : 'text-font-dimest hover:text-font-dim'}">
+        {tabLabel[tab]}
+        {#if counts[tab]}
+          <span class="ml-1.5 text-[11px] tabular-nums {activeTab === tab ? 'text-primary' : 'text-font-dimest/60'}">
+            {counts[tab]}
+          </span>
+        {/if}
+        {#if activeTab === tab}
+          <span class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-gradient-primary"></span>
+        {/if}
+      </button>
+    {/each}
+  </div>
+
+  {#each filteredGames as game}
     {@const teams = getTeams(game.players)}
     {@const large = game.players.length >= 5}
-    <div class="relative flex w-full p-5 not-last:border-b border-card-edge even:bg-zebra-2 hover:bg-select transition-colors duration-200 ease-out gap-5">
+    <div class="relative flex flex-col md:flex-row w-full p-4 md:p-5 not-last:border-b border-card-edge even:bg-zebra-2 hover:bg-select transition-colors duration-200 ease-out gap-4 md:gap-5">
       <a href="/matches/view/{game.id}" class="absolute inset-0 z-0" aria-label="View match"></a>
 
       <!-- Map thumbnail -->
       {#if game.has_map}
-        <img src="/files/maps/{game.id}" alt="" class="h-44 w-80 rounded-xl object-cover shrink-0" />
+        <img src="/files/maps/{game.id}" alt="" class="h-44 w-full md:w-80 rounded-xl object-cover md:shrink-0" />
       {:else}
-        <div class="rounded-xl h-44 w-80 shrink-0 bg-card-2 border border-card-edge flex flex-col items-center justify-center gap-1.5 text-font-dimest">
+        <div class="rounded-xl h-32 md:h-44 w-full md:w-80 md:shrink-0 bg-card-2 border border-card-edge flex flex-col items-center justify-center gap-1.5 text-font-dimest">
           <Map strokeWidth={1} class="h-6 w-6" />
           <span class="text-xs">Map not available</span>
         </div>
