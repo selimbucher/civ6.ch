@@ -23,7 +23,8 @@ export const actions: Actions = {
 
         let res: Response;
         try {
-            res = await fetch('http://localhost:8080/parse', {
+            // Changed from 'localhost' to '127.0.0.1' to avoid loopback resolution overhead
+            res = await fetch('http://127.0.0.1:8080/parse', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/octet-stream',
@@ -31,7 +32,7 @@ export const actions: Actions = {
                 },
                 body: await file.arrayBuffer(),
             });
-        } catch {
+        } catch (err) {
             return fail(502, { error: 'Parser service unavailable' });
         }
 

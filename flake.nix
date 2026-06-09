@@ -129,10 +129,12 @@
               wantedBy = [ "multi-user.target" ];
               after = [ "network.target" "postgresql.service" ];
               serviceConfig = {
-                ExecStart = "${server}/bin/civ6";
+                ExecStart = "${server}/bin/civ6server";
                 Restart = "on-failure";
                 User = "civ6";
                 Group = "civ6";
+                StateDirectory = "civ6";
+                Environment = [ "STORAGE_PATH=/var/lib/civ6" ];
               };
             };
 

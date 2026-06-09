@@ -50,14 +50,13 @@ func main() {
 
 	s := &server{pool: pool, store: store}
 
-	http.HandleFunc("POST /parse", s.handleParse)
-	http.HandleFunc("POST /recalculate", s.handleRecalculate)
+	// Dynamic REST routes using Go 1.22+ parameter matching
 	http.HandleFunc("GET /files/saves/{id}", s.handleGetSave)
 	http.HandleFunc("GET /files/maps/{id}", s.handleGetMap)
 	http.HandleFunc("DELETE /games/{id}", s.handleDeleteGameFiles)
 	http.HandleFunc("POST /games/{id}/update", s.handleUpdateSave)
 
-	// Legacy routes without method prefix (keeps old clients working).
+	// Clean fallback matching for root endpoints to prevent internal 404 routing conflicts
 	http.HandleFunc("/parse", s.handleParse)
 	http.HandleFunc("/recalculate", s.handleRecalculate)
 
@@ -132,9 +131,6 @@ func (s *server) handleParse(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(parseResponse{GameID: gameID})
 }
 
-// storeFiles compresses the raw save and renders + encodes the map, then
-// writes both to the storage backend. Errors are logged but never fatal — the
-// game row in the DB is the authoritative record.
 func (s *server) storeFiles(gameID int, raw, decompressed []byte, players []civ6save.Player) {
 	ctx := context.Background()
 
@@ -216,6 +212,24 @@ func (s *server) handleGetSave(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, gr)
 }
 
+func (s *server) handleGetMap(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	data, err := s.store.Get(r.Context(), fmt.Sprintf("maps/%d.webp", id))
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/webp")
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Write(data)
+}
+
 // ── Update save ──────────────────────────────────────────────────────────────
 
 type updateResponse struct {
@@ -243,7 +257,6 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(r)
 	}
 
-	// ── Load existing game ────────────────────────────────────────────────
 	var existingMap string
 	var existingTurns int16
 	err = s.pool.QueryRow(r.Context(),
@@ -254,7 +267,6 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load existing leaders (by slug, as stored in game_players.leader)
 	rows, err := s.pool.Query(r.Context(),
 		`SELECT id, COALESCE(leader,'') FROM game_players WHERE game_id=$1 ORDER BY id`, id)
 	if err != nil {
@@ -262,7 +274,11 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	type gpRow struct{ id int; leader string }
+
+	type gpRow struct {
+		id     int
+		leader string
+	}
 	var existing []gpRow
 	for rows.Next() {
 		var g gpRow
@@ -270,17 +286,16 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 		existing = append(existing, g)
 	}
 
-	// ── Parse new save ────────────────────────────────────────────────────
 	settings := civ6save.ParseSettings(data)
 	newPlayers := civ6save.ParsePlayers(data)
 
 	decompressed, err := civ6save.Decompress(data)
 	if err != nil {
-		reply(updateResponse{Error: "failed to decompress save"}); return
+		reply(updateResponse{Error: "failed to decompress save"})
+		return
 	}
 	newTurn := civ6save.ParseTurn(decompressed)
 
-	// ── Validate ──────────────────────────────────────────────────────────
 	if existingMap != "" && settings.Map != "" && settings.Map != existingMap {
 		reply(updateResponse{Error: fmt.Sprintf("wrong map: save has %q, game has %q", settings.Map, existingMap)})
 		return
@@ -293,7 +308,8 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 		reply(updateResponse{Error: fmt.Sprintf("player count changed (%d → %d)", len(existing), len(newPlayers))})
 		return
 	}
-	existingByLeader := make(map[string]int) // slug → game_player id
+
+	existingByLeader := make(map[string]int)
 	for _, g := range existing {
 		existingByLeader[g.leader] = g.id
 	}
@@ -305,7 +321,6 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// ── Update DB ─────────────────────────────────────────────────────────
 	var state *civ6save.GameState
 	if decompressed != nil {
 		state, _ = civ6save.ParseState(decompressed)
@@ -313,7 +328,8 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError); return
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
 	}
 	defer tx.Rollback(r.Context())
 
@@ -342,12 +358,12 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = tx.Commit(r.Context()); err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError); return
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
 	}
 
 	go s.storeFiles(id, data, decompressed, newPlayers)
-	reply(updateResponse{OK: true, Turns: newTurn,
-		Message: fmt.Sprintf("Updated to turn %d", newTurn)})
+	reply(updateResponse{OK: true, Turns: newTurn, Message: fmt.Sprintf("Updated to turn %d", newTurn)})
 }
 
 func (s *server) handleDeleteGameFiles(w http.ResponseWriter, r *http.Request) {
@@ -366,25 +382,6 @@ func (s *server) handleDeleteGameFiles(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *server) handleGetMap(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	data, err := s.store.Get(r.Context(), fmt.Sprintf("maps/%d.webp", id))
-	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "image/webp")
-	// Maps are immutable once stored — cache aggressively.
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	w.Write(data)
 }
 
 // ── Recalculate ───────────────────────────────────────────────────────────────
@@ -418,18 +415,18 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 	allowReligious := sliceContains(settings.EnabledVictories, "VICTORY_RELIGIOUS")
 	allowCulture := sliceContains(settings.EnabledVictories, "VICTORY_CULTURE")
 	allowDiplomatic := sliceContains(settings.EnabledVictories, "VICTORY_DIPLOMATIC")
-	shuffleTechs      := sliceContains(settings.Modes, "TREE_RANDOMIZER")
-	secretSocieties   := sliceContains(settings.Modes, "SECRETSOCIETIES")
-	heroesAndLegends  := sliceContains(settings.Modes, "HEROES_AND_LEGENDS")
-	apocalypseMode    := sliceContains(settings.Modes, "APOCALYPSE")
-	monopolies        := sliceContains(settings.Modes, "MONOPOLIES")
-	barbarianClans    := sliceContains(settings.Modes, "BARBARIAN_CLANS")
-	zombieDefense     := sliceContains(settings.Modes, "ZOMBIE_DEFENSE")
+	shuffleTechs := sliceContains(settings.Modes, "TREE_RANDOMIZER")
+	secretSocieties := sliceContains(settings.Modes, "SECRETSOCIETIES")
+	heroesAndLegends := sliceContains(settings.Modes, "HEROES_AND_LEGENDS")
+	apocalypseMode := sliceContains(settings.Modes, "APOCALYPSE")
+	monopolies := sliceContains(settings.Modes, "MONOPOLIES")
+	barbarianClans := sliceContains(settings.Modes, "BARBARIAN_CLANS")
+	zombieDefense := sliceContains(settings.Modes, "ZOMBIE_DEFENSE")
 
-	mapSize   := stripPrefix(settings.MapSize,   "MAPSIZE_")
+	mapSize := stripPrefix(settings.MapSize, "MAPSIZE_")
 	gameSpeed := stripPrefix(settings.GameSpeed, "GAMESPEED_")
-	era        := stripPrefix(settings.CurrentEra, "ERA_")
-	ruleset    := stripPrefix(settings.Ruleset,    "RULESET_")
+	era := stripPrefix(settings.CurrentEra, "ERA_")
+	ruleset := stripPrefix(settings.Ruleset, "RULESET_")
 	difficulty := stripPrefix(settings.Difficulty, "DIFFICULTY_")
 
 	var gameID int
