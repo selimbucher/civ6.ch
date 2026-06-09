@@ -1,0 +1,222 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+::selection {
+  color: rgb(0, 0, 0);
+  background-color: rgb(255, 255, 255);
+}
+
+:root {
+    color: var(--color-font);
+    border-color: var(--color-font);
+    background-color: var(--color-background);
+    font-family: "Quicksand", sans-serif;
+}
+
+:root {
+    --ui-scale-ratio: 0.2; /* Ratio between display size and UI scale. Fuck. <- This is proof the comment is not AI. */
+
+    font-size: calc(16px + var(--ui-scale-ratio) * (1vw - 14.20px));
+    --spacing: calc(0.25em + 0.1 * (1vw - 14.20px));
+}
+
+.font-fancy {
+    font-family: "Cinzel", serif;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(45deg, var(--color-primary), var(--color-primary-2));
+}
+
+.text-gradient-primary {
+    background: linear-gradient(45deg, var(--color-primary), var(--color-primary-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-fancy {
+    background: linear-gradient(45deg, var(--color-secondary), var(--color-primary-2));
+}
+
+.magic-button {
+    transition: all 300ms;
+}
+
+button:hover > .magic-button {
+    left: 50%;
+    translate: -50%;
+}
+
+.frame {
+    background-image: url(/src/lib/assets/frame.webp);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    aspect-ratio: 1;
+    background-position: center;
+    background-size: contain;
+    translate: -50% -53%;
+    background-repeat: no-repeat;
+}
+
+input:focus-visible,
+select:focus-visible {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+@theme {
+    --text-m: 1.05rem;
+
+    --color-font: hsl(0deg 0% 88%);
+    --color-font-clear: hsl(0deg 0% 100%);
+    --color-font-dim: hsl(0deg 0% 85%);
+    --color-font-dimy: hsl(0deg 0% 75%);
+    --color-font-dimer: hsl(0deg 0% 60%);
+    --color-font-dimest: hsl(0deg 0% 40%);
+    --color-font-good: hsl(110, 36%, 54%);
+    --color-font-bad: hsl(10, 83%, 57%);
+
+    --color-good-shadow: hsl(110, 36%, 54%, 20%);
+    --color-bad-shadow: hsl(10, 83%, 57%, 20%);
+
+    --color-select: hsla(0 0 100% / 5%);
+    --color-background: hsl(240deg 1.5% 0%);
+    --color-zebra-1: hsla(0deg 0% 100% / 2%);
+    --color-zebra-2: hsla(0deg 0% 100% / 1%);
+
+    --color-primary: hsl(49.88deg 73% 71%);
+    --color-primary-2: hsl(46.35deg 73.05% 57.35%);
+    --color-primary-shadow: hsl(49.88deg 100% 24.35%);
+
+    --color-secondary: hsl(255, 73%, 71%);
+
+    --color-card: hsl(240deg 0.5% 6%);
+    --color-card-2: hsl(0deg 0% 12%);
+    --color-card-3: hsl(0deg 0% 22%);
+    --color-card-edge: hsl(0deg 0% 14%);
+    --color-card-edge-2: hsl(0deg 0% 16%);
+    --color-darken: hsla(0deg 0% 2% / 50%);
+
+    --color-science-1: #2a92ae;
+    --color-science-2: #71c8d3;
+    --color-culture-1: #aa68b2;
+    --color-culture-2: #e9b0e9;
+    --color-gold-1: #dcd169;
+    --color-gold-2: #e6e3bd;
+    --color-faith-1: #7a8fa7;
+    --color-faith-2: #c1c9d1;
+    --color-army-1: #b12d30;
+    --color-army-2: #cd5657;
+    --color-diplo-1: #90754c;
+    --color-diplo-2: #d6ae6b;
+    --color-score-1: #dcad2f;
+    --color-score-2: #ba8c86;
+    --color-food-1: #a4c27b;
+    --color-food-2: #b8cfb1;
+    --color-production-1: #c2903e;
+    --color-production-2: #d5c5a9;
+}
+
+.text-science {
+    background: linear-gradient(to bottom, var(--color-science-1), var(--color-science-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-culture {
+    background: linear-gradient(to bottom, var(--color-culture-1), var(--color-culture-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-gold {
+    background: linear-gradient(to bottom, var(--color-gold-1), var(--color-gold-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-faith {
+    background: linear-gradient(to bottom, var(--color-faith-1), var(--color-faith-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-army {
+    background: linear-gradient(to bottom, var(--color-army-1), var(--color-army-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-diplo {
+    background: linear-gradient(to bottom, var(--color-diplo-1), var(--color-diplo-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-score {
+    background: linear-gradient(to bottom, var(--color-score-1), var(--color-score-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-food {
+    background: linear-gradient(to bottom, var(--color-food-1), var(--color-food-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+.text-production {
+    background: linear-gradient(to bottom, var(--color-production-1), var(--color-production-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0.15rem 0.15rem 0px #000000);
+}
+
+@layer base {
+  body {
+    /* Define the width of the main vertical scrollbar */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    /* Style the background path behind the thumb */
+    &::-webkit-scrollbar-track {
+      background: var(--color-card-edge); /* Tailwind slate-100 */
+    }
+
+    /* Style the draggable thumb handle */
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-font-dimer);
+      border-radius: 9999px;
+      border: none;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: var(--color-font-dim);
+    }
+    overflow-y: scroll;
+  }
+}
