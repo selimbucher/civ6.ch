@@ -183,7 +183,7 @@
 
       <!-- Map thumbnail -->
       {#if game.has_map}
-        <img src="/files/maps/{game.id}" alt="" class="h-44 w-full md:w-80 rounded-xl object-cover md:shrink-0" />
+        <img src="/files/maps/{game.id}" alt="" class="h-44 w-full md:w-80 object-cover md:shrink-0" />
       {:else}
         <div class="rounded-xl h-32 md:h-44 w-full md:w-80 md:shrink-0 bg-card-2 border border-card-edge flex flex-col items-center justify-center gap-1.5 text-font-dimest">
           <Map strokeWidth={1} class="h-6 w-6" />

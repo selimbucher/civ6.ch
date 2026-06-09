@@ -40,8 +40,8 @@ type DistrictState struct {
 	Pillage  int
 }
 
-// MiningTechCRC is the CRC32 of "TECH_MINING" as stored in the save file's tech tree.
-const MiningTechCRC uint32 = 0x776ea019
+// MiningTechCRC is the Civ6 CRC (^crc32.IEEE) of "TECH_MINING".
+const MiningTechCRC uint32 = 0x88915fe6
 
 // HasTech reports whether the player has researched the tech with the given CRC32.
 func (ps *PlayerState) HasTech(crc uint32) bool {
