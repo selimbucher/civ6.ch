@@ -101,7 +101,7 @@ export const actions: Actions = {
         const [gameCheck] = await sql`SELECT category FROM games WHERE id = ${id}`;
         if (!gameCheck) return fail(404, { error: 'Game not found' });
         let gameCategory = gameCheck.category;
-        if (!gameCategory) {
+        if (!gameCategory || gameCategory === 'ffa') {
             gameCategory = assignments.length === 2 ? '1v1' : 'ffa';
             await sql`UPDATE games SET category = ${gameCategory} WHERE id = ${id}`;
         }
