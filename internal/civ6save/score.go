@@ -9,6 +9,12 @@ var districtNoScore = map[uint32]bool{
 	0x4ef3d333: true, // DISTRICT_TRIBAL_VILLAGE
 }
 
+// IsScoreExemptDistrictCRC reports whether the district type does not
+// contribute to score (city centers, wonder plots, barbarian camps, …).
+func IsScoreExemptDistrictCRC(crc uint32) bool {
+	return districtNoScore[crc]
+}
+
 // ScoreBreakdown computes score using BBG scoring rules:
 // - city 2, pop 2, district 2 (unique 4), building 1, wonder 4,
 // - tech 3, civic 4, great person 3,

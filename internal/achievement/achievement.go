@@ -16,25 +16,25 @@ import (
 
 // G holds per-game data for game-based achievement checks.
 type G struct {
-	GameID           int
-	VictoryType      string
-	Leader           string
-	Turns            int
-	Score            int
-	Favor            int
-	Science          int
-	Culture          int
-	Winner           bool
-	PlayerCount      int
-	TeamCount        int
-	PreRatingRank    int  // 1 = weakest entering
-	PostRatingRank   int  // 1 = strongest rating after game
-	PostRatingOverall float64
-	PostRDOverall     float64
-	WinStreakAfter    int
-	ScoreRank        int  // 1 = highest score
-	MiningResearched *bool
-	EnemyLeaders     []string
+	GameID             int
+	VictoryType        string
+	Leader             string
+	Turns              int
+	Score              int
+	Favor              int
+	Science            int
+	Culture            int
+	Winner             bool
+	PlayerCount        int
+	TeamCount          int
+	PreRatingRank      int // 1 = weakest entering
+	PostRatingRank     int // 1 = strongest rating after game
+	PostRatingOverall  float64
+	PostRDOverall      float64
+	WinStreakAfter     int
+	ScoreRank          int // 1 = highest score
+	MiningResearched   *bool
+	EnemyLeaders       []string
 	LosingStreakBefore int // consecutive losses immediately before this game
 }
 
@@ -78,7 +78,8 @@ func RegisterStats(id int, fn func(S) bool) {
 
 // ── Evaluator ─────────────────────────────────────────────────────────────────
 
-var pointsFor = map[int]int{-1: 200, 0: 50, 1: 100, 2: 150, 3: 200}
+// Achievement points per difficulty are computed in SQL — see the
+// achievement_points CASE expression in evaluate.
 
 type achMeta struct{ id, difficulty int }
 

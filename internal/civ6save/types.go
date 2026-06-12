@@ -105,6 +105,21 @@ type ReligionState struct {
 	Units         []uint32
 }
 
+// GameSettings holds lobby/setup parameters read from the pre-compressed save header.
+type GameSettings struct {
+	Map              string   // e.g. "Shuffle", "Pangaea Ultima"
+	MapSize          string   // e.g. "MAPSIZE_SMALL"
+	GameSpeed        string   // e.g. "GAMESPEED_ONLINE"
+	Difficulty       string   // e.g. "DIFFICULTY_PRINCE"
+	Ruleset          string   // e.g. "RULESET_EXPANSION_2" (Gathering Storm)
+	CurrentEra       string   // e.g. "ERA_INDUSTRIAL" (current game era)
+	Options          []string // e.g. ["GAMEOPTION_NO_BARBARIANS"]
+	Modes            []string // e.g. ["MONOPOLIES", "SECRETSOCIETIES"]
+	EnabledVictories []string // e.g. ["VICTORY_CONQUEST", "VICTORY_CULTURE"]
+	MapScript        string   // e.g. "StandardMaps/Shuffle.lua"
+	MultiPlayer      bool
+}
+
 // GameState is the full parsed turn state.
 type GameState struct {
 	Players              [64]*PlayerState

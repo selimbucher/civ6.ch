@@ -14,17 +14,9 @@ func newReader(data []byte, pos int) *reader {
 	return &reader{data: data, pos: pos}
 }
 
-func (r *reader) remaining() int { return len(r.data) - r.pos }
-
 func (r *reader) readU8() uint8 {
 	v := r.data[r.pos]
 	r.pos++
-	return v
-}
-
-func (r *reader) readU16() uint16 {
-	v := binary.LittleEndian.Uint16(r.data[r.pos:])
-	r.pos += 2
 	return v
 }
 
@@ -32,10 +24,6 @@ func (r *reader) readU32() uint32 {
 	v := binary.LittleEndian.Uint32(r.data[r.pos:])
 	r.pos += 4
 	return v
-}
-
-func (r *reader) readI32() int {
-	return int(int32(r.readU32()))
 }
 
 // readInt mirrors buffToInteger(it, byteCount) — reads 1,2,3,4 bytes LE.
@@ -121,7 +109,7 @@ func (r *reader) readMapFloat() map[uint32]float32 {
 	return m
 }
 
-// readMapBool mirrors readMapBool(it).
+// readMapBoolDiscard mirrors readMapBool(it) with no output.
 func (r *reader) readMapBoolDiscard() {
 	count := int(r.readU32())
 	r.skip(count * 5) // key(4) + bool(1)
@@ -145,17 +133,6 @@ func (r *reader) readMapBool() map[uint32]bool {
 // sep=1 means skip 1 byte after non-zero values.
 func (r *reader) readArrayDiscard(size int, sep int) {
 	count := int(r.readU32())
-	for i := 0; i < count; i++ {
-		v := r.readInt(size)
-		if v != 0 && sep > 0 {
-			r.skip(sep)
-		}
-	}
-}
-
-// readArrayDiscardSC mirrors readArray with custom sizeCount.
-func (r *reader) readArrayDiscardSC(size int, sep int, sizeCount int) {
-	count := int(r.readInt(sizeCount))
 	for i := 0; i < count; i++ {
 		v := r.readInt(size)
 		if v != 0 && sep > 0 {

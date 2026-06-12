@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 
 	"github.com/chai2010/webp"
@@ -350,9 +351,9 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 				food=$5, production=$6, gold=$7, faith=$8, tourism=$9, favor=$10
 			WHERE id=$11`,
 			ps.Score(), totalPopulation(ps),
-			int(math.Round(float64(ps.Science))), int(math.Round(float64(ps.Culture))),
-			int(math.Round(float64(ps.Food))), int(math.Round(float64(ps.Production))),
-			ps.Gold, ps.Faith, int(math.Round(float64(ps.Tourism))), ps.DiploFavor,
+			roundToInt(ps.Science), roundToInt(ps.Culture),
+			roundToInt(ps.Food), roundToInt(ps.Production),
+			ps.Gold, ps.Faith, roundToInt(ps.Tourism), ps.DiploFavor,
 			gpID,
 		)
 	}
@@ -409,19 +410,19 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 	}
 	defer tx.Rollback(ctx)
 
-	allowConquest := sliceContains(settings.EnabledVictories, "VICTORY_CONQUEST")
-	allowScore := sliceContains(settings.EnabledVictories, "VICTORY_SCORE")
-	allowScience := sliceContains(settings.EnabledVictories, "VICTORY_TECHNOLOGY")
-	allowReligious := sliceContains(settings.EnabledVictories, "VICTORY_RELIGIOUS")
-	allowCulture := sliceContains(settings.EnabledVictories, "VICTORY_CULTURE")
-	allowDiplomatic := sliceContains(settings.EnabledVictories, "VICTORY_DIPLOMATIC")
-	shuffleTechs := sliceContains(settings.Modes, "TREE_RANDOMIZER")
-	secretSocieties := sliceContains(settings.Modes, "SECRETSOCIETIES")
-	heroesAndLegends := sliceContains(settings.Modes, "HEROES_AND_LEGENDS")
-	apocalypseMode := sliceContains(settings.Modes, "APOCALYPSE")
-	monopolies := sliceContains(settings.Modes, "MONOPOLIES")
-	barbarianClans := sliceContains(settings.Modes, "BARBARIAN_CLANS")
-	zombieDefense := sliceContains(settings.Modes, "ZOMBIE_DEFENSE")
+	allowConquest := slices.Contains(settings.EnabledVictories, "VICTORY_CONQUEST")
+	allowScore := slices.Contains(settings.EnabledVictories, "VICTORY_SCORE")
+	allowScience := slices.Contains(settings.EnabledVictories, "VICTORY_TECHNOLOGY")
+	allowReligious := slices.Contains(settings.EnabledVictories, "VICTORY_RELIGIOUS")
+	allowCulture := slices.Contains(settings.EnabledVictories, "VICTORY_CULTURE")
+	allowDiplomatic := slices.Contains(settings.EnabledVictories, "VICTORY_DIPLOMATIC")
+	shuffleTechs := slices.Contains(settings.Modes, "TREE_RANDOMIZER")
+	secretSocieties := slices.Contains(settings.Modes, "SECRETSOCIETIES")
+	heroesAndLegends := slices.Contains(settings.Modes, "HEROES_AND_LEGENDS")
+	apocalypseMode := slices.Contains(settings.Modes, "APOCALYPSE")
+	monopolies := slices.Contains(settings.Modes, "MONOPOLIES")
+	barbarianClans := slices.Contains(settings.Modes, "BARBARIAN_CLANS")
+	zombieDefense := slices.Contains(settings.Modes, "ZOMBIE_DEFENSE")
 
 	mapSize := stripPrefix(settings.MapSize, "MAPSIZE_")
 	gameSpeed := stripPrefix(settings.GameSpeed, "GAMESPEED_")
@@ -473,13 +474,13 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 			s := ps.Score()
 			score = intPtr(s)
 			population = intPtr(totalPopulation(ps))
-			science = intPtr(int(math.Round(float64(ps.Science))))
-			culture = intPtr(int(math.Round(float64(ps.Culture))))
-			food = intPtr(int(math.Round(float64(ps.Food))))
-			production = intPtr(int(math.Round(float64(ps.Production))))
+			science = intPtr(roundToInt(ps.Science))
+			culture = intPtr(roundToInt(ps.Culture))
+			food = intPtr(roundToInt(ps.Food))
+			production = intPtr(roundToInt(ps.Production))
 			gold = intPtr(ps.Gold)
 			faith = intPtr(ps.Faith)
-			tourism = intPtr(int(math.Round(float64(ps.Tourism))))
+			tourism = intPtr(roundToInt(ps.Tourism))
 			favor = intPtr(ps.DiploFavor)
 		}
 
@@ -541,15 +542,6 @@ func totalPopulation(ps *civ6save.PlayerState) int {
 	return total
 }
 
-func sliceContains(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 func stripPrefix(s, prefix string) string {
 	if len(s) > len(prefix) && s[:len(prefix)] == prefix {
 		return s[len(prefix):]
@@ -565,3 +557,6 @@ func nullStr(s string) *string {
 }
 
 func intPtr(v int) *int { return &v }
+
+// roundToInt rounds a float32 yield to the nearest int for DB storage.
+func roundToInt(f float32) int { return int(math.Round(float64(f))) }

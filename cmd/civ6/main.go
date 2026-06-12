@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"image/color"
 	"image/png"
 	"log"
 	"net/http"
@@ -84,24 +83,37 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func printScoreAudit(path string, playerIdx int) {
+// mustLoadState reads, decompresses, and parses the save at path,
+// exiting the process on any failure.
+func mustLoadState(path string) (decompressed []byte, gs *civ6save.GameState) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	decompressed, err := civ6save.Decompress(data)
+	decompressed, err = civ6save.Decompress(data)
 	if err != nil {
 		log.Fatal(err)
 	}
-	gs, err := civ6save.ParseState(decompressed)
+	gs, err = civ6save.ParseState(decompressed)
 	if err != nil {
 		log.Fatal(err)
 	}
+	return decompressed, gs
+}
+
+// mustLoadPlayer is mustLoadState plus a bounds-checked player lookup.
+// It also prints the common audit header line.
+func mustLoadPlayer(path string, playerIdx int) (*civ6save.GameState, *civ6save.PlayerState) {
+	decompressed, gs := mustLoadState(path)
 	if playerIdx < 0 || playerIdx >= len(gs.Players) || gs.Players[playerIdx] == nil {
 		log.Fatalf("player[%d] not found", playerIdx)
 	}
-	p := gs.Players[playerIdx]
 	fmt.Printf("file=%s turn=%d player=%d\n", path, civ6save.ParseTurn(decompressed), playerIdx)
+	return gs, gs.Players[playerIdx]
+}
+
+func printScoreAudit(path string, playerIdx int) {
+	_, p := mustLoadPlayer(path, playerIdx)
 
 	for _, c := range p.Cities {
 		cityPts := 2
@@ -117,7 +129,7 @@ func printScoreAudit(path string, playerIdx int) {
 			if d.CityID != c.ID {
 				continue
 			}
-			if d.Type == 0x8a32007d || d.Type == 0x62f1b509 || d.Type == 0x226247b8 || d.Type == 0xd2a343c7 || d.Type == 0x4ef3d333 {
+			if civ6save.IsScoreExemptDistrictCRC(d.Type) {
 				continue
 			}
 			distPts += civ6save.DistrictScorePoints(d.Type)
@@ -150,23 +162,7 @@ func printScoreAudit(path string, playerIdx int) {
 }
 
 func printBuildAudit(path string, playerIdx int) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	decompressed, err := civ6save.Decompress(data)
-	if err != nil {
-		log.Fatal(err)
-	}
-	gs, err := civ6save.ParseState(decompressed)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if playerIdx < 0 || playerIdx >= len(gs.Players) || gs.Players[playerIdx] == nil {
-		log.Fatalf("player[%d] not found", playerIdx)
-	}
-	p := gs.Players[playerIdx]
-	fmt.Printf("file=%s turn=%d player=%d\n", path, civ6save.ParseTurn(decompressed), playerIdx)
+	_, p := mustLoadPlayer(path, playerIdx)
 
 	type entry struct {
 		crc  uint32
@@ -450,6 +446,3 @@ func parseSave(path string, debug bool) {
 		}
 	}
 }
-
-// silence unused import if playerColors not used in RenderMap signature
-var _ = color.RGBA{}

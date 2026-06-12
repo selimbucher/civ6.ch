@@ -76,7 +76,9 @@ type Opponent struct {
 }
 
 // Update runs one Glicko-2 update for a player against aggregated opponents.
-// teamRating and teamRD are the player's team aggregates (pass player values for solo).
+// teamRating and teamRD are the player's team aggregates (pass player values
+// for solo). teamRD is currently unused by the algorithm but kept so callers
+// supply the full team aggregate.
 // results is the slice of result scalars against each opposing team.
 // opponents is the slice of opposing team aggregates.
 // teamSize is used to split the rating gain for team games.
@@ -86,7 +88,6 @@ func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results 
 	σ := p.Volatility
 
 	μt := toGlicko(teamRating)
-	φt := toGlickoRD(teamRD)
 
 	μj := make([]float64, len(opponents))
 	φj := make([]float64, len(opponents))
@@ -163,7 +164,6 @@ func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results 
 	// team size split
 	r2 := (fromGlicko(μ2)-p.Rating)/float64(teamSize) + p.Rating
 
-	_ = φt // used via μt above
 	return Player{
 		Rating:     r2,
 		RD:         fromGlickoRD(φ2),

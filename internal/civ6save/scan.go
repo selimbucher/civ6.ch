@@ -1,7 +1,14 @@
+// Marker-scan extraction of basic player info (leader, pseudo, color).
+// Unlike the sequential parsing pipeline in parse.go, this scans the whole
+// file for known byte markers and produces lightweight Player records
+// rather than the full PlayerState.
+
 package civ6save
 
 import (
+	"bytes"
 	"encoding/binary"
+	"strings"
 )
 
 var iPlayerIdxMk = []byte{0x2f, 0x52, 0x96, 0x1a}
@@ -39,20 +46,17 @@ func pktStr(data []byte, offset int) string {
 	return string(raw)
 }
 
+// findNext returns the index of the first occurrence of marker in
+// data[start:end], or -1 if absent.
 func findNext(data []byte, marker []byte, start, end int) int {
-	for i := start; i <= end-len(marker); i++ {
-		match := true
-		for j := range marker {
-			if data[i+j] != marker[j] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return i
-		}
+	if start < 0 || start >= end {
+		return -1
 	}
-	return -1
+	i := bytes.Index(data[start:end], marker)
+	if i == -1 {
+		return -1
+	}
+	return start + i
 }
 
 func ParsePlayers(data []byte) []Player {
@@ -111,10 +115,10 @@ func ParsePlayers(data []byte) []Player {
 			}
 			s := pktStr(data, lm)
 			if len(s) > 7 && s[:7] == "LEADER_" &&
-				!contains(s, "MINOR") &&
-				!contains(s, "FREE") &&
-				!contains(s, "LOC_") &&
-				!contains(s, "_NAME") {
+				!strings.Contains(s, "MINOR") &&
+				!strings.Contains(s, "FREE") &&
+				!strings.Contains(s, "LOC_") &&
+				!strings.Contains(s, "_NAME") {
 				leader = s
 				break
 			}
@@ -148,16 +152,4 @@ func ParsePlayers(data []byte) []Player {
 	}
 
 	return players
-}
-
-func contains(s, sub string) bool {
-	if len(sub) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
 }

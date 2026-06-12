@@ -18,13 +18,13 @@ const (
 )
 
 type gameRow struct {
-	id         int
-	category   string
-	date       time.Time
-	rated      bool
-	tmp        bool
-	draw       bool
-	weight     float64
+	id       int
+	category string
+	date     time.Time
+	rated    bool
+	tmp      bool
+	draw     bool
+	weight   float64
 }
 
 type gamePlayerRow struct {
@@ -159,6 +159,22 @@ func teamWon(players []gamePlayerRow, team int) bool {
 	return false
 }
 
+// aggregateRatings combines the members' ratings into one team aggregate.
+// The rating sum is normalised by the smallest team size in the game
+// (handicap for uneven teams) while RD is averaged over the members.
+// get selects which rating row (category or overall) to aggregate.
+func aggregateRatings(members []gamePlayerRow, smallestTeam int, get func(playerID int) ratingRow) (rating, rd float64) {
+	for _, m := range members {
+		rating += get(m.playerID).rating
+	}
+	rating /= float64(smallestTeam)
+	for _, m := range members {
+		rd += get(m.playerID).rd
+	}
+	rd /= float64(len(members))
+	return rating, rd
+}
+
 func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bool) error {
 	game, err := fetchGame(ctx, pool, gameID)
 	if err != nil {
@@ -205,6 +221,9 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 		states[p.playerID] = playerState{cat: cat, overall: overall}
 	}
 
+	catOf := func(playerID int) ratingRow { return states[playerID].cat }
+	overallOf := func(playerID int) ratingRow { return states[playerID].overall }
+
 	// apply RD decay if requested
 	if decayRD {
 		for pid, state := range states {
@@ -226,27 +245,8 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 
 	for teamID, members := range teams {
 		// aggregate this team's rating
-		teamRating := 0.0
-		teamRD := 0.0
-		for _, m := range members {
-			teamRating += states[m.playerID].cat.rating
-		}
-		teamRating /= float64(smallestTeam)
-		for _, m := range members {
-			teamRD += states[m.playerID].cat.rd
-		}
-		teamRD /= float64(len(members))
-
-		teamRatingOverall := 0.0
-		teamRDOverall := 0.0
-		for _, m := range members {
-			teamRatingOverall += states[m.playerID].overall.rating
-		}
-		teamRatingOverall /= float64(smallestTeam)
-		for _, m := range members {
-			teamRDOverall += states[m.playerID].overall.rd
-		}
-		teamRDOverall /= float64(len(members))
+		teamRating, teamRD := aggregateRatings(members, smallestTeam, catOf)
+		teamRatingOverall, teamRDOverall := aggregateRatings(members, smallestTeam, overallOf)
 
 		// aggregate opponents
 		var oppsCat []glicko.Opponent
@@ -260,27 +260,8 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 			if oppID == teamID {
 				continue
 			}
-			oppRating := 0.0
-			oppRD := 0.0
-			for _, m := range oppMembers {
-				oppRating += states[m.playerID].cat.rating
-			}
-			oppRating /= float64(smallestTeam)
-			for _, m := range oppMembers {
-				oppRD += states[m.playerID].cat.rd
-			}
-			oppRD /= float64(len(oppMembers))
-
-			oppRatingOverall := 0.0
-			oppRDOverall := 0.0
-			for _, m := range oppMembers {
-				oppRatingOverall += states[m.playerID].overall.rating
-			}
-			oppRatingOverall /= float64(smallestTeam)
-			for _, m := range oppMembers {
-				oppRDOverall += states[m.playerID].overall.rd
-			}
-			oppRDOverall /= float64(len(oppMembers))
+			oppRating, oppRD := aggregateRatings(oppMembers, smallestTeam, catOf)
+			oppRatingOverall, oppRDOverall := aggregateRatings(oppMembers, smallestTeam, overallOf)
 
 			oppScore := teamScore(players, oppID)
 			result := glicko.Result(myScore, oppScore, myWon, teamWon(players, oppID))
