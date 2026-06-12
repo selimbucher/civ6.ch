@@ -251,6 +251,8 @@
                                     <img src={leaderPortrait(player.leader)!} alt=""
                                          class="h-full w-full object-cover"
                                          onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                                {:else if player.leader}
+                                    <div class="h-full w-full flex items-center justify-center text-font-dimest text-xs font-bold select-none">?</div>
                                 {/if}
                             </div>
 
@@ -414,6 +416,8 @@
                                     <img src={leaderPortrait(player.leader)!} alt=""
                                          class="h-full w-full object-cover"
                                          onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                                {:else if player.leader}
+                                    <div class="h-full w-full flex items-center justify-center text-font-dimest text-[9px] font-bold select-none">?</div>
                                 {/if}
                             </div>
                         </td>
@@ -467,6 +471,8 @@
                                         <img src={leaderPortrait(player.leader)!} alt=""
                                              class="h-full w-full object-cover"
                                              onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                                    {:else if player.leader}
+                                        <div class="h-full w-full flex items-center justify-center text-font-dimest text-[10px] font-bold select-none">?</div>
                                     {/if}
                                 </div>
                                 <div>
