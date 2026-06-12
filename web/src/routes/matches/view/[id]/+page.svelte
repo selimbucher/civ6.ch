@@ -289,7 +289,7 @@
             <!-- Map -->
             <div class="rounded-2xl {hasMap ? '' : 'border border-card-edge bg-card shadow-md shadow-darken'}  overflow-hidden">
                 {#if hasMap}
-                    <img src="/files/maps/{game.id}?v=2" alt="" class="w-full block" />
+                    <img src="/files/maps/{game.id}" alt="" class="w-full block" />
                 {:else}
                     <div class="flex flex-col items-center justify-center gap-2 p-16 text-font-dimest">
                         <Map strokeWidth={1} class="h-10 w-10" />
