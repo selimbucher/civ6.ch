@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 
 	"github.com/selimbucher/civ6.ch/internal/civ6save"
 	"github.com/selimbucher/civ6.ch/internal/db"
@@ -56,6 +57,16 @@ func main() {
 				fmt.Sscanf(os.Args[3], "%d", &idx)
 			}
 			printBuildAudit(os.Args[2], idx)
+			return
+		case "regenerate":
+			if len(os.Args) < 3 {
+				log.Fatal("usage: civ6 regenerate <gameID>")
+			}
+			id, err := strconv.Atoi(os.Args[2])
+			if err != nil {
+				log.Fatalf("invalid game id %q", os.Args[2])
+			}
+			regenerateGame(ctx, id)
 			return
 		case "recalculate":
 			pool, err := db.Connect(ctx)
