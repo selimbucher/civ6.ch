@@ -226,8 +226,9 @@ func (s *server) handleGetMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Maps can be regenerated under the same URL, so no immutable caching.
 	w.Header().Set("Content-Type", "image/webp")
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.Write(data)
 }
 

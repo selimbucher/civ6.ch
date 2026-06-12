@@ -30,9 +30,12 @@ func New(backend, root string) (Backend, error) {
 	switch backend {
 	case "local", "":
 		if root == "" {
-			// Prefer an explicit env var; fall back to XDG user data dir so the
-			// server works without root permissions in development.
-			if home, err := os.UserHomeDir(); err == nil {
+			// Prefer the server's state directory when present (production),
+			// then fall back to the XDG user data dir so the server works
+			// without root permissions in development.
+			if fi, err := os.Stat("/var/lib/civ6"); err == nil && fi.IsDir() {
+				root = "/var/lib/civ6"
+			} else if home, err := os.UserHomeDir(); err == nil {
 				root = filepath.Join(home, ".local", "share", "civ6")
 			} else {
 				root = "/var/lib/civ6"
