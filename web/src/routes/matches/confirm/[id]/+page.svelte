@@ -98,7 +98,7 @@
         <!-- Map -->
         <div class="shrink-0 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
             {#if game.has_map}
-                <img src="/files/maps/{game.id}" alt="" class="h-52 w-auto block" />
+                <img src="/files/maps/{game.id}?v=2" alt="" class="h-52 w-auto block" />
             {:else}
                 <div class="h-52 w-48 flex flex-col items-center justify-center gap-2 text-font-dimest">
                     <Map strokeWidth={1} class="h-8 w-8" />
