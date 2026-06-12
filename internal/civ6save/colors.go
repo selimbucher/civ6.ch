@@ -3,6 +3,7 @@ package civ6save
 import (
 	"hash/crc32"
 	"image/color"
+	"sort"
 	"strings"
 )
 
@@ -123,10 +124,32 @@ func PlayerColor(leader string, icolor int) color.RGBA {
 }
 
 // BuildPlayerColors returns a map[playerIndex]color.RGBA from parsed players.
+// Mirrors Civ6's jersey conflict resolution: players are assigned in index
+// order, and a player whose primary color is already taken by an earlier
+// player gets its color slot incremented until a free color is found.
 func BuildPlayerColors(players []Player) map[int]color.RGBA {
+	sorted := make([]Player, len(players))
+	copy(sorted, players)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Index < sorted[j].Index })
+
 	m := make(map[int]color.RGBA, len(players))
-	for _, p := range players {
-		m[p.Index] = PlayerColor(p.Leader, p.IColor)
+	var used []color.RGBA
+	for _, p := range sorted {
+		c := PlayerColor(p.Leader, p.IColor)
+		for try := 1; try < 8 && colorTaken(used, c); try++ {
+			c = PlayerColor(p.Leader, (p.IColor+try)%8)
+		}
+		used = append(used, c)
+		m[p.Index] = c
 	}
 	return m
+}
+
+func colorTaken(used []color.RGBA, c color.RGBA) bool {
+	for _, u := range used {
+		if u.R == c.R && u.G == c.G && u.B == c.B {
+			return true
+		}
+	}
+	return false
 }
