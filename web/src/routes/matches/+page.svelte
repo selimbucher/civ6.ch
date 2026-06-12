@@ -135,6 +135,8 @@
                     <div class="h-5 w-5 rounded-full bg-card-edge overflow-hidden">
                       {#if leaderPortrait(p.leader)}
                         <img src={leaderPortrait(p.leader)!} alt="" class="h-full w-full object-cover" />
+                      {:else if p.leader}
+                        <div class="h-full w-full flex items-center justify-center text-font-dimest text-[8px] font-bold select-none">?</div>
                       {/if}
                     </div>
                     {#if p.pseudo_name}
@@ -233,6 +235,8 @@
                   <div class="shrink-0 h-7 w-7 rounded-full bg-card-edge overflow-hidden ring-1 {player.winner ? 'ring-primary/60' : 'ring-transparent'}">
                     {#if leaderPortrait(player.leader)}
                       <img src={leaderPortrait(player.leader)!} alt="" class="h-full w-full object-cover" />
+                    {:else if player.leader}
+                      <div class="h-full w-full flex items-center justify-center text-font-dimest text-[9px] font-bold select-none">?</div>
                     {/if}
                   </div>
                   <div class="flex flex-col {i === 0 ? 'items-end' : 'items-start'}">

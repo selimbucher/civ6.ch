@@ -319,6 +319,8 @@
                                     class="h-full w-full object-cover"
                                     onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
                                 />
+                            {:else if l.leader}
+                                <div class="h-full w-full flex items-center justify-center text-font-dimest text-[9px] font-bold select-none">?</div>
                             {/if}
                         </div>
                         <div class="flex-1 min-w-0">

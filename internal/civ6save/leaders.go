@@ -65,6 +65,7 @@ var leaderSlugs = map[string]string{
 
 	// J
 	"JADWIGA":       "Jadwiga",
+	"JFD_STANISLAW": "Stanislaw_II",
 	"JAYAVARMAN":    "Jayavarman_VII",
 	"JOAO_III":      "João_III",
 	"JOHN_CURTIN":   "John_Curtin",
@@ -86,6 +87,7 @@ var leaderSlugs = map[string]string{
 	"MANSA_MUSA":        "Mansa_Musa",
 	"MATTHIAS_CORVINUS": "Matthias_Corvinus",
 	"MENELIK":           "Menelik_II",
+	"MER_THEODORIC":     "Theodoric",
 	"MONTEZUMA":         "Montezuma",
 	"MVEMBA":            "Mvemba_a_Nzinga",
 

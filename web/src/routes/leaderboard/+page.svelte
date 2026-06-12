@@ -59,6 +59,8 @@
             {#if leaderPortrait(player.top_leader)}
               <img src={leaderPortrait(player.top_leader)} alt=""
                    class="w-full h-full object-cover" />
+            {:else if player.top_leader}
+              <div class="w-full h-full flex items-center justify-center text-font-dimest text-xs font-bold select-none">?</div>
             {:else}
               <div class="w-full h-full"></div>
             {/if}
