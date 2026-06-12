@@ -3,7 +3,6 @@ package civ6save
 import (
 	"hash/crc32"
 	"image/color"
-	"math"
 	"sort"
 	"strings"
 )
@@ -146,32 +145,9 @@ func BuildPlayerColors(players []Player) map[int]color.RGBA {
 	return m
 }
 
-// minColorDist is the minimum RGB distance below which two map colors are
-// considered indistinguishable.
-const minColorDist = 60
-
-// waterColors must stay distinguishable from territory overlays, otherwise
-// a player's land reads as ocean (e.g. navy 1,42,108 vs ocean 45,49,86).
-var waterColors = []color.RGBA{
-	{45, 49, 86, 255},  // ocean
-	{45, 89, 120, 255}, // coast
-}
-
-func colorDist(a, b color.RGBA) float64 {
-	dr := float64(a.R) - float64(b.R)
-	dg := float64(a.G) - float64(b.G)
-	db := float64(a.B) - float64(b.B)
-	return math.Sqrt(dr*dr + dg*dg + db*db)
-}
-
 func colorTaken(used []color.RGBA, c color.RGBA) bool {
 	for _, u := range used {
-		if colorDist(u, c) < minColorDist {
-			return true
-		}
-	}
-	for _, w := range waterColors {
-		if colorDist(w, c) < minColorDist {
+		if u.R == c.R && u.G == c.G && u.B == c.B {
 			return true
 		}
 	}
