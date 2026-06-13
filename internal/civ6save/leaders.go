@@ -58,7 +58,7 @@ var leaderSlugs = map[string]string{
 	"HARDRADA":           "Harald_Hardrada",
 	"HARDRADA_NORWAY":    "Harald_Hardrada",
 	"HARDRADA_VARANGIAN": "Harald_Hardrada_(Varangian)",
-	"HERALD_ALT":         "Harald_Hardrada_(Vikings,_Traders,_and_Raiders!)",
+	"HERALD_ALT":         "Harald_Hardrada_(Varangian)",
 	"HOJO_TOKIMUNE":      "Hojo_Tokimune",
 
 	// I
