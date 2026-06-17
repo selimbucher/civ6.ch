@@ -188,7 +188,20 @@ func ParseSettings(data []byte) GameSettings {
 }
 
 // ParseState parses the main game body into a GameState.
-func ParseState(data []byte) (*GameState, error) {
+//
+// The body is a reverse-engineered binary format, so an unexpected or
+// malformed save can lead the reader to interpret garbage as a length and
+// index out of bounds. Such cases surface as panics from the low-level
+// reader; recover from them here and return an error so a single bad save
+// fails gracefully instead of taking down the request handler.
+func ParseState(data []byte) (gs *GameState, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			gs = nil
+			err = fmt.Errorf("parse state: %v", r)
+		}
+	}()
+
 	idx := bytes.Index(data, territoryBuilder)
 	if idx == -1 {
 		return nil, errors.New("TERRITORY_BUILDER not found")
@@ -199,7 +212,7 @@ func ParseState(data []byte) (*GameState, error) {
 	r.skip(8) // 00 07
 	r.skip(8) // ?
 
-	gs := &GameState{}
+	gs = &GameState{}
 
 	religions, err := parseReligions(r)
 	if err != nil {
