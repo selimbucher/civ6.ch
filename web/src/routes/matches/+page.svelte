@@ -232,7 +232,7 @@
                 {@const d = formatDelta(player.pre_rating, player.post_rating)}
                 {@const displayName = teams.length > 2 ? player.name.split(' ').slice(0, 2).join(' ') : player.name}
                 <div class="flex items-center gap-2 {i === 0 ? 'flex-row-reverse' : 'flex-row'}">
-                  <div class="shrink-0 h-7 w-7 rounded-full bg-card-edge overflow-hidden ring-1 {player.winner ? 'ring-primary/60' : 'ring-transparent'}">
+                  <div class="shrink-0 h-8 w-8 rounded-full bg-card-edge overflow-hidden ring-1 {player.winner ? 'ring-primary/60' : 'ring-transparent'}">
                     {#if leaderPortrait(player.leader)}
                       <img src={leaderPortrait(player.leader)!} alt="" class="h-full w-full object-cover" />
                     {:else if player.leader}
