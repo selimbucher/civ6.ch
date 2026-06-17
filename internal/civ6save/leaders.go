@@ -115,15 +115,17 @@ var leaderSlugs = map[string]string{
 	"ROBERT_BRUCE": "Robert_the_Bruce",
 
 	// S
-	"SALADIN":           "Saladin",
-	"SALADIN_SULTAN":    "Saladin_(Sultan)",
-	"SEJONG":            "Sejong",
-	"SEONDEOK":          "Seondeok",
-	"SHAKA":             "Shaka",
-	"SIMON_BOLIVAR":     "Simón_Bolívar",
-	"SULEIMAN":          "Suleiman",
-	"SULEIMAN_MUHTEŞEM": "Suleiman_(Muhteşem)",
-	"SUNDIATA_KEITA":    "Sundiata_Keita",
+	"SALADIN":            "Saladin",
+	"SALADIN_SULTAN":     "Saladin_(Sultan)",
+	"SEJONG":             "Sejong",
+	"SEONDEOK":           "Seondeok",
+	"SHAKA":              "Shaka",
+	"SIMON_BOLIVAR":      "Simón_Bolívar",
+	"SUK_INGOLFUR":       "Ingólfur_Arnarson",
+	"SUK_TRISONG_DETSEN": "Trisong_Detsen",
+	"SULEIMAN":           "Suleiman",
+	"SULEIMAN_MUHTEŞEM":  "Suleiman_(Muhteşem)",
+	"SUNDIATA_KEITA":     "Sundiata_Keita",
 
 	// T
 	"TAMAR":                      "Tamar",
