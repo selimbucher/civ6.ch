@@ -79,15 +79,18 @@ var leaderSlugs = map[string]string{
 	"KUPE":                 "Kupe",
 
 	// L
-	"LADY_SIX_SKY": "Lady_Six_Sky",
-	"LADY_TRIEU":   "Bà_Triệu",
-	"LAUTARO":      "Lautaro",
-	"LUDWIG":       "Ludwig_II",
+	"LADY_SIX_SKY":   "Lady_Six_Sky",
+	"LADY_TRIEU":     "Bà_Triệu",
+	"LAUTARO":        "Lautaro",
+	"LIME_TEO_OWL":   "Spearthrower_Owl",
+	"LL_TEKINICH_II": "Te'_K'inich_II",
+	"LUDWIG":         "Ludwig_II",
 
 	// M
 	"MANSA_MUSA":        "Mansa_Musa",
 	"MATTHIAS_CORVINUS": "Matthias_Corvinus",
 	"MENELIK":           "Menelik_II",
+	"MER_MARIA_THERESA": "Maria_Theresa",
 	"MER_THEODORIC":     "Theodoric",
 	"MONTEZUMA":         "Montezuma",
 	"MVEMBA":            "Mvemba_a_Nzinga",
