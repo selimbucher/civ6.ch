@@ -25,6 +25,15 @@ var (
 	endPlayerStuff = []byte{0xBC, 0x0A, 0x2B, 0xDE}
 )
 
+// plotGreatWorksMarker introduces an optional great-works sub-block inside a
+// city's PLOT_PROPERTIES entry. Emitted only by mods (bytes 99 9F 13 82).
+const plotGreatWorksMarker = 0x82139F99
+
+// districtYieldMapCount is the fixed entry count (6 yields) of the per-district
+// yield maps. A modded leader-trait block, when present, sits before these maps,
+// so a value other than 6 after the district header signals that block.
+const districtYieldMapCount = 6
+
 // ── public API ────────────────────────────────────────────────────────────────
 
 // ParseTurn reads the current turn number from the raw save bytes.
@@ -1434,6 +1443,22 @@ func parseCity(r *reader, city *CityState) error {
 			count4 := int(r.readU32())
 			r.skip(count4 * 22)
 		}
+		// Modded plots can carry extra great-works sub-blocks (e.g. Iceland's
+		// "Suk_LawspeakerGreatWorks"), each introduced by marker 0x82139F99.
+		// Base-game saves never emit these. Consume them so the reader stays
+		// aligned with the FF FF FF FF terminator that follows the block.
+		for r.pos+4 <= len(r.data) && r.peek32() == plotGreatWorksMarker {
+			r.skip(4) // marker
+			nameLen := int(r.readInt(2))
+			r.skip(nameLen) // great-work type string
+			r.skip(12)
+			gwCount := int(r.readInt(3))
+			r.skip(1)
+			for j := 0; j < gwCount; j++ {
+				gwInner := int(r.readU32())
+				r.skip(gwInner * 22)
+			}
+		}
 	}
 
 	r.skip(8)
@@ -1466,6 +1491,19 @@ func parseDistrict(r *reader, d *DistrictState) error {
 	_ = int(r.readU32()) // cost
 	d.Built = int(r.readU32())
 	r.skip(1)
+	// Modded districts can carry a leader-trait block (e.g. Iceland's
+	// "TRAIT_LEADER_SUK_BOOK_OF_SETTLEMENTS") inserted before the yield maps.
+	// Base-game districts go straight to the first map, whose count is always 6,
+	// so any other value here signals the trait block.
+	if r.peek32() != districtYieldMapCount {
+		traitCount := int(r.readU32())
+		for t := 0; t < traitCount; t++ {
+			r.skip(4) // 4-byte type marker
+			nameLen := int(r.readInt(2))
+			r.skip(nameLen) // TRAIT_* string
+			r.skip(16)      // trailer
+		}
+	}
 	for k := 0; k < 3; k++ {
 		if err := r.assertU32(6); err != nil {
 			return errors.New("expected 6 in district map loop")
