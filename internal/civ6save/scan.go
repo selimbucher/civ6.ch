@@ -16,6 +16,7 @@ var typePlayerMk = []byte{0x95, 0xb9, 0x42, 0xce}
 var pseudoMk = []byte{0xfd, 0x6b, 0xb9, 0xda}
 var leaderStrMk = []byte{0x5f, 0x5e, 0xcd, 0xe8}
 var iColorMk = []byte{0xef, 0x60, 0xaf, 0xcf}
+var teamMk = []byte{0x54, 0xb4, 0x8a, 0x0d} // 0x0D8AB454 — shared-victory team id
 
 const typePlayerFull = 3
 
@@ -24,6 +25,11 @@ type Player struct {
 	Leader string
 	Pseudo string
 	IColor int
+	// Team is the save's shared-victory team id. Players sharing a Team win
+	// together; in FFA each player has a unique Team (alliances do not change it).
+	Team int
+	// Eliminated is true for major players no longer alive (typePlayer != 3).
+	Eliminated bool
 }
 
 func pktInt(data []byte, offset int) uint32 {
@@ -94,18 +100,20 @@ func ParsePlayers(data []byte) []Player {
 			blockEnd = blocks[i+1].pos
 		}
 
-		// typePlayer
+		// typePlayer marks the slot kind: 3 = active major (human), 1 = AI.
+		// A human who is eliminated has their slot flipped to AI, so we cannot
+		// rely on this value alone — we keep alive majors (==3) and, for other
+		// values, only those that still carry a human pseudo (eliminated humans),
+		// which excludes genuine AI fill, city-states and barbarians.
 		tp := findNext(data, typePlayerMk, b.pos, blockEnd)
 		if tp == -1 {
 			seen[b.iPlayer] = true
 			continue
 		}
-		if int(pktInt(data, tp)) != typePlayerFull {
-			seen[b.iPlayer] = true
-			continue
-		}
+		eliminated := int(pktInt(data, tp)) != typePlayerFull
 
-		// leaderStr
+		// leaderStr — only real major civs pass this filter, which excludes
+		// city-states, free cities and barbarians.
 		leader := ""
 		lm := b.pos
 		for {
@@ -135,6 +143,13 @@ func ParsePlayers(data []byte) []Player {
 			pseudo = pktStr(data, pm)
 		}
 
+		// Skip non-human slots: an eliminated slot with no pseudo is AI fill,
+		// not a tracked player.
+		if eliminated && pseudo == "" {
+			seen[b.iPlayer] = true
+			continue
+		}
+
 		// iColor
 		ic := findNext(data, iColorMk, b.pos, blockEnd)
 		icolor := 0
@@ -142,12 +157,25 @@ func ParsePlayers(data []byte) []Player {
 			icolor = int(pktInt(data, ic))
 		}
 
+		// team — shared-victory team id. The team packet sits immediately
+		// before the player's iPlayer marker, so scan backwards for it.
+		team := b.iPlayer
+		lo := b.pos - 64
+		if lo < 0 {
+			lo = 0
+		}
+		if rel := bytes.LastIndex(data[lo:b.pos], teamMk); rel != -1 {
+			team = int(pktInt(data, lo+rel))
+		}
+
 		seen[b.iPlayer] = true
 		players = append(players, Player{
-			Index:  b.iPlayer,
-			Leader: leader,
-			Pseudo: pseudo,
-			IColor: icolor,
+			Index:      b.iPlayer,
+			Leader:     leader,
+			Pseudo:     pseudo,
+			IColor:     icolor,
+			Team:       team,
+			Eliminated: eliminated,
 		})
 	}
 

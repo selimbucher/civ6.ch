@@ -52,13 +52,26 @@
     function fmt(val: number | null) { return val != null ? String(val) : '—'; }
 
     let selectedVictory = $state('');
-    let winnerRowId     = $state<number | null>(null);
+    let winnerTeam      = $state<number | null>(null);
     let assignments     = $state<Record<number, number>>({});
     let updateFile      = $state<File | null>(null);
     let updateInputEl   = $state<HTMLInputElement>();
 
+    // Group rows by their parsed shared-victory team id. Solo players (FFA)
+    // each form a team of one; real teams hold several members.
+    // (Map is shadowed by the lucide icon import, so group with a plain object.)
+    const teams = $derived.by(() => {
+        const order: number[] = [];
+        const byTeam: Record<number, any[]> = {};
+        for (const r of rows) {
+            if (!byTeam[r.team]) { byTeam[r.team] = []; order.push(r.team); }
+            byTeam[r.team].push(r);
+        }
+        return order.map((t) => byTeam[t]);
+    });
+
     const allAssigned  = $derived(rows.every((r: any) => (assignments[r.id] ?? 0) !== 0));
-    const canFinalize  = $derived(allAssigned && !!selectedVictory && winnerRowId !== null);
+    const canFinalize  = $derived(allAssigned && !!selectedVictory && winnerTeam !== null);
 
     const selectedVictoryColor = $derived(
         victoryTypes.find(v => v.value === selectedVictory)?.color ?? 'var(--color-primary)'
@@ -185,83 +198,101 @@
                     <th class="text-center pr-5 py-2.5 font-fancy text-[10px] tracking-widest uppercase text-font-dimest">Winner</th>
                 </tr>
             </thead>
-            <tbody>
-                {#each rows as row}
-                    {@const isWinner   = winnerRowId === row.id}
-                    {@const isAssigned = (assignments[row.id] ?? 0) !== 0}
-                    <tr class="not-last:border-b border-card-edge transition-colors duration-100
-                               {isWinner ? 'bg-font-good/5' : 'hover:bg-select'}"
-                        style={isWinner ? 'box-shadow: inset 3px 0 0 #6ab355' : ''}>
+            {#each teams as team}
+                {@const teamId      = team[0].team}
+                {@const isWinner    = winnerTeam === teamId}
+                {@const isTeamGame  = team.length > 1}
+                <tbody class="border-b border-card-edge last:border-b-0">
+                    {#each team as row, ri}
+                        <tr class="transition-colors duration-100
+                                   {isWinner ? 'bg-font-good/5' : 'hover:bg-select'}"
+                            style={isWinner
+                                     ? 'box-shadow: inset 3px 0 0 #6ab355'
+                                     : (isTeamGame ? 'box-shadow: inset 3px 0 0 var(--color-card-edge-2)' : '')}>
 
-                        <!-- Leader portrait + name + pseudo -->
-                        <td class="pl-4 py-3">
-                            <div class="flex items-center gap-2.5">
-                                <div class="h-9 w-9 rounded-full bg-card-edge overflow-hidden shrink-0 transition-all duration-150
-                                            {isWinner ? 'ring-2 ring-font-good ring-offset-1 ring-offset-card' : ''}">
-                                    {#if leaderPortrait(row.leader)}
-                                        <img src={leaderPortrait(row.leader)} alt=""
-                                             class="h-full w-full object-cover"
-                                             onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display='none')} />
-                                    {:else if row.leader}
-                                        <div class="h-full w-full flex items-center justify-center text-font-dimest text-[9px] font-bold select-none">?</div>
-                                    {/if}
+                            <!-- Leader portrait + name + pseudo -->
+                            <td class="pl-4 py-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="h-9 w-9 rounded-full bg-card-edge overflow-hidden shrink-0 transition-all duration-150
+                                                {isWinner ? 'ring-2 ring-font-good ring-offset-1 ring-offset-card' : ''}
+                                                {row.eliminated ? 'grayscale opacity-60' : ''}">
+                                        {#if leaderPortrait(row.leader)}
+                                            <img src={leaderPortrait(row.leader)} alt=""
+                                                 class="h-full w-full object-cover"
+                                                 onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display='none')} />
+                                        {:else if row.leader}
+                                            <div class="h-full w-full flex items-center justify-center text-font-dimest text-[9px] font-bold select-none">?</div>
+                                        {/if}
+                                    </div>
+                                    <div class="flex flex-col leading-tight">
+                                        <span class="text-sm transition-colors duration-150
+                                                     {isWinner ? 'text-font-clear font-medium' : 'text-font-dim'}">
+                                            {row.leader ?? '—'}
+                                        </span>
+                                        <div class="flex items-center gap-1.5 mt-0.5">
+                                            {#if row.pseudo_name}
+                                                <span class="text-xs text-font-dimest">{row.pseudo_name}</span>
+                                            {/if}
+                                            {#if row.eliminated}
+                                                <span class="text-[9px] uppercase tracking-wider px-1.5 py-px rounded-full bg-font-bad/10 text-font-bad border border-font-bad/20">Eliminated</span>
+                                            {/if}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-sm transition-colors duration-150
-                                                 {isWinner ? 'text-font-clear font-medium' : 'text-font-dim'}">
-                                        {row.leader ?? '—'}
-                                    </span>
-                                    {#if row.pseudo_name}
-                                        <span class="text-xs text-font-dimest">{row.pseudo_name}</span>
-                                    {/if}
+                            </td>
+
+                            <!-- Assign to -->
+                            <td class="px-4 py-3">
+                                <input type="hidden" name="row_{row.id}" value={assignments[row.id] ?? 0} />
+                                <input type="hidden" name="winner_{row.id}" value={isWinner ? 'on' : ''} />
+                                <div class="flex flex-wrap gap-1">
+                                    {#each players as p}
+                                        {@const takenByOther = Object.entries(assignments).some(
+                                            ([rid, pid]) => pid === p.id && parseInt(rid) !== row.id
+                                        )}
+                                        {@const isSelected = assignments[row.id] === p.id}
+                                        <button type="button"
+                                            disabled={takenByOther && !isSelected}
+                                            onclick={() => assignments[row.id] = isSelected ? 0 : p.id}
+                                            class="px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-100 cursor-pointer
+                                                   {isSelected
+                                                     ? 'bg-primary/15 text-primary border border-primary/30'
+                                                     : takenByOther
+                                                       ? 'text-font-dimest/25 border border-transparent cursor-default'
+                                                       : 'text-font-dimer border border-transparent hover:border-card-edge hover:text-font-dim'}">
+                                            {p.name}
+                                        </button>
+                                    {/each}
                                 </div>
-                            </div>
-                        </td>
+                            </td>
 
-                        <!-- Assign to -->
-                        <td class="px-4 py-3">
-                            <input type="hidden" name="row_{row.id}" value={assignments[row.id] ?? 0} />
-                            <div class="flex flex-wrap gap-1">
-                                {#each players as p}
-                                    {@const takenByOther = Object.entries(assignments).some(
-                                        ([rid, pid]) => pid === p.id && parseInt(rid) !== row.id
-                                    )}
-                                    {@const isSelected = assignments[row.id] === p.id}
-                                    <button type="button"
-                                        disabled={takenByOther && !isSelected}
-                                        onclick={() => assignments[row.id] = isSelected ? 0 : p.id}
-                                        class="px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-100 cursor-pointer
-                                               {isSelected
-                                                 ? 'bg-primary/15 text-primary border border-primary/30'
-                                                 : takenByOther
-                                                   ? 'text-font-dimest/25 border border-transparent cursor-default'
-                                                   : 'text-font-dimer border border-transparent hover:border-card-edge hover:text-font-dim'}">
-                                        {p.name}
-                                    </button>
-                                {/each}
-                            </div>
-                        </td>
+                            <!-- Yields -->
+                            <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={scoreIcon}   alt="" class="h-4.5 shrink-0" /><span class="text-score   text-sm font-bold tabular-nums">{fmt(row.score)}</span></span></td>
+                            <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={scienceIcon} alt="" class="h-5   shrink-0" /><span class="text-science text-sm font-bold tabular-nums">{fmt(row.science)}</span></span></td>
+                            <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={cultureIcon} alt="" class="h-5   shrink-0" /><span class="text-culture text-sm font-bold tabular-nums">{fmt(row.culture)}</span></span></td>
+                            <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={goldIcon}    alt="" class="h-5   shrink-0" /><span class="text-gold    text-sm font-bold tabular-nums">{fmt(row.gold)}</span></span></td>
+                            <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={faithIcon}   alt="" class="h-5   shrink-0" /><span class="text-faith   text-sm font-bold tabular-nums">{fmt(row.faith)}</span></span></td>
 
-                        <!-- Yields -->
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={scoreIcon}   alt="" class="h-4.5 shrink-0" /><span class="text-score   text-sm font-bold tabular-nums">{fmt(row.score)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={scienceIcon} alt="" class="h-5   shrink-0" /><span class="text-science text-sm font-bold tabular-nums">{fmt(row.science)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={cultureIcon} alt="" class="h-5   shrink-0" /><span class="text-culture text-sm font-bold tabular-nums">{fmt(row.culture)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={goldIcon}    alt="" class="h-5   shrink-0" /><span class="text-gold    text-sm font-bold tabular-nums">{fmt(row.gold)}</span></span></td>
-                        <td class="pr-3 py-3"><span class="flex items-center justify-end gap-1"><img src={faithIcon}   alt="" class="h-5   shrink-0" /><span class="text-faith   text-sm font-bold tabular-nums">{fmt(row.faith)}</span></span></td>
-
-                        <!-- Winner toggle -->
-                        <td class="pr-5 py-3 text-center">
-                            <input type="checkbox" name="winner_{row.id}"
-                                class="confirm-check"
-                                checked={isWinner}
-                                onchange={(e) => {
-                                    if ((e.currentTarget as HTMLInputElement).checked) winnerRowId = row.id;
-                                    else if (winnerRowId === row.id) winnerRowId = null;
-                                }} />
-                        </td>
-                    </tr>
-                {/each}
-            </tbody>
+                            <!-- Winner toggle — one per team -->
+                            {#if ri === 0}
+                                <td rowspan={team.length} class="pr-5 py-3 text-center align-middle border-l border-card-edge/40">
+                                    {#if isTeamGame}
+                                        <div class="text-[9px] uppercase tracking-wider text-font-dimest mb-1">Team</div>
+                                    {/if}
+                                    <input type="checkbox"
+                                        class="confirm-check"
+                                        checked={isWinner}
+                                        onchange={(e) => {
+                                            winnerTeam = (e.currentTarget as HTMLInputElement).checked
+                                                ? teamId
+                                                : (winnerTeam === teamId ? null : winnerTeam);
+                                        }} />
+                                </td>
+                            {/if}
+                        </tr>
+                    {/each}
+                </tbody>
+            {/each}
         </table>
     </form>
 

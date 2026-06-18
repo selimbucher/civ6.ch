@@ -485,17 +485,22 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 			favor = intPtr(ps.DiploFavor)
 		}
 
+		// Eliminated players are recorded as participants but with score 0.
+		if p.Eliminated {
+			score = intPtr(0)
+		}
+
 		var gpID int
 		err = tx.QueryRow(ctx, `
 			INSERT INTO game_players (
-				game_id, team, leader, pseudo_name, score,
+				game_id, team, player_index, leader, pseudo_name, score,
 				population, science, culture, food, production, gold, faith, tourism, favor,
-				mining_researched
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+				mining_researched, eliminated
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 			RETURNING id`,
-			gameID, int16(p.Index), leader, nullStr(p.Pseudo), score,
+			gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
 			population, science, culture, food, production, gold, faith, tourism, favor,
-			miningResearched,
+			miningResearched, p.Eliminated,
 		).Scan(&gpID)
 		if err != nil {
 			return 0, err

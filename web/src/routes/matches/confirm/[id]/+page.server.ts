@@ -20,11 +20,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     if (!game.tmp) redirect(303, `/matches/view/${id}`);
 
     const rows = await sql`
-        SELECT id, leader, pseudo_name, score,
+        SELECT id, team, eliminated, leader, pseudo_name, score,
                population, science, culture, food, production, gold, faith, tourism, favor
         FROM game_players
         WHERE game_id = ${id}
-        ORDER BY id
+        ORDER BY team, id
     `;
 
     const players = await sql`SELECT id, name FROM players ORDER BY name`;
@@ -95,18 +95,31 @@ export const actions: Actions = {
         const { error: assignError, assignments } = await parseAssignments(data, id);
         if (assignError || !assignments) return fail(400, { error: assignError });
 
-        const winnerCount = assignments.filter(a => a.winner).length;
-        if (winnerCount === 0) return fail(400, { error: 'At least one winner must be selected' });
-
-        const [gameCheck] = await sql`SELECT category FROM games WHERE id = ${id}`;
+        const [gameCheck] = await sql`SELECT id FROM games WHERE id = ${id}`;
         if (!gameCheck) return fail(404, { error: 'Game not found' });
-        let gameCategory = gameCheck.category;
-        if (!gameCategory || gameCategory === 'ffa') {
-            gameCategory = assignments.length === 2 ? '1v1' : 'ffa';
-            await sql`UPDATE games SET category = ${gameCategory} WHERE id = ${id}`;
+
+        // Team structure comes from the parsed save (shared-victory team id).
+        const teamRows = await sql`SELECT id, team FROM game_players WHERE game_id = ${id}`;
+        const teamByRow = new Map<number, number>(teamRows.map((r: any) => [r.id, r.team]));
+
+        // Winners are decided per team: the winning team is whichever team an
+        // admin marked, and the whole team wins together.
+        const winningTeams = new Set(
+            assignments.filter(a => a.winner).map(a => teamByRow.get(a.rowId))
+        );
+        if (winningTeams.size === 0) return fail(400, { error: 'Select the winning team' });
+        if (winningTeams.size > 1) return fail(400, { error: 'Only one team can win' });
+        const winningTeam = [...winningTeams][0];
+
+        // Category from team sizes: any team with >1 member ⇒ teams game.
+        const teamSizes = new Map<number, number>();
+        for (const a of assignments) {
+            const t = teamByRow.get(a.rowId)!;
+            teamSizes.set(t, (teamSizes.get(t) ?? 0) + 1);
         }
-        if (winnerCount > 1 && gameCategory === 'ffa')
-            return fail(400, { error: 'Only one winner allowed in FFA' });
+        const maxTeam = Math.max(...teamSizes.values());
+        const gameCategory = maxTeam > 1 ? 'teams' : assignments.length === 2 ? '1v1' : 'ffa';
+        await sql`UPDATE games SET category = ${gameCategory} WHERE id = ${id}`;
 
         const playerIds = assignments.map(a => a.playerId);
         const ratings = await sql`
@@ -125,8 +138,9 @@ export const actions: Actions = {
         const ratingMap = Object.fromEntries(ratings.map((r: any) => [r.id, r]));
 
         await sql.begin(async sql => {
-            for (const { rowId, playerId, winner } of assignments) {
+            for (const { rowId, playerId } of assignments) {
                 const r = ratingMap[playerId];
+                const winner = teamByRow.get(rowId) === winningTeam;
                 await sql`
                     UPDATE game_players SET
                         player_id               = ${playerId},

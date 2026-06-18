@@ -112,31 +112,27 @@ func regenerateGame(ctx context.Context, gameID int) {
 		log.Fatalf("game %d not found", gameID)
 	}
 
-	// Existing player rows, matched by team (= save player index).
+	// Existing player rows, matched by the save player index (stable across
+	// re-parses, unlike team which now holds the real shared-victory team).
 	rows, err := tx.Query(ctx,
-		`SELECT id, team FROM game_players WHERE game_id=$1`, gameID)
+		`SELECT id, player_index FROM game_players WHERE game_id=$1`, gameID)
 	if err != nil {
 		log.Fatalf("query game_players: %v", err)
 	}
-	gpByTeam := make(map[int]int)
+	gpByIndex := make(map[int]int)
 	for rows.Next() {
 		var id int
-		var team int16
-		if err := rows.Scan(&id, &team); err != nil {
+		var idx *int16
+		if err := rows.Scan(&id, &idx); err != nil {
 			log.Fatalf("scan game_players: %v", err)
 		}
-		gpByTeam[int(team)] = id
+		if idx != nil {
+			gpByIndex[int(*idx)] = id
+		}
 	}
 	rows.Close()
 
 	for _, p := range players {
-		gpID, ok := gpByTeam[p.Index]
-		if !ok {
-			log.Printf("warning: save player %d (%s) has no game_players row, skipping", p.Index, p.Leader)
-			continue
-		}
-		delete(gpByTeam, p.Index)
-
 		leader := civ6save.LeaderSlug(p.Leader)
 
 		var score *int
@@ -157,23 +153,49 @@ func regenerateGame(ctx context.Context, gameID int) {
 			tourism = intPtr(roundToInt(ps.Tourism))
 			favor = intPtr(ps.DiploFavor)
 		}
-
-		_, err = tx.Exec(ctx, `
-			UPDATE game_players SET
-				leader=$1, pseudo_name=$2, score=$3,
-				population=$4, science=$5, culture=$6, food=$7, production=$8,
-				gold=$9, faith=$10, tourism=$11, favor=$12,
-				mining_researched=$13
-			WHERE id=$14`,
-			leader, nullStr(p.Pseudo), score,
-			population, science, culture, food, production,
-			gold, faith, tourism, favor,
-			miningResearched, gpID,
-		)
-		if err != nil {
-			log.Fatalf("update game_players %d: %v", gpID, err)
+		// Eliminated players are recorded as participants but with score 0.
+		if p.Eliminated {
+			score = intPtr(0)
 		}
-		log.Printf("updated player team=%d leader=%s (game_players id=%d)", p.Index, leader, gpID)
+
+		gpID, ok := gpByIndex[p.Index]
+		if ok {
+			delete(gpByIndex, p.Index)
+			_, err = tx.Exec(ctx, `
+				UPDATE game_players SET
+					team=$1, leader=$2, pseudo_name=$3, score=$4,
+					population=$5, science=$6, culture=$7, food=$8, production=$9,
+					gold=$10, faith=$11, tourism=$12, favor=$13,
+					mining_researched=$14, eliminated=$15
+				WHERE id=$16`,
+				int16(p.Team), leader, nullStr(p.Pseudo), score,
+				population, science, culture, food, production,
+				gold, faith, tourism, favor,
+				miningResearched, p.Eliminated, gpID,
+			)
+			if err != nil {
+				log.Fatalf("update game_players %d: %v", gpID, err)
+			}
+			log.Printf("updated player index=%d team=%d leader=%s (game_players id=%d)", p.Index, p.Team, leader, gpID)
+		} else {
+			// Newly-parsed player (e.g. an eliminated player the old parser
+			// dropped). Insert a fresh, unassigned row.
+			err = tx.QueryRow(ctx, `
+				INSERT INTO game_players (
+					game_id, team, player_index, leader, pseudo_name, score,
+					population, science, culture, food, production, gold, faith, tourism, favor,
+					mining_researched, eliminated
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+				RETURNING id`,
+				gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
+				population, science, culture, food, production, gold, faith, tourism, favor,
+				miningResearched, p.Eliminated,
+			).Scan(&gpID)
+			if err != nil {
+				log.Fatalf("insert game_players index=%d: %v", p.Index, err)
+			}
+			log.Printf("inserted player index=%d team=%d leader=%s (game_players id=%d)", p.Index, p.Team, leader, gpID)
+		}
 
 		if state == nil || state.Players[p.Index] == nil {
 			continue
@@ -209,8 +231,8 @@ func regenerateGame(ctx context.Context, gameID int) {
 			}
 		}
 	}
-	for team, gpID := range gpByTeam {
-		log.Printf("warning: game_players row id=%d (team=%d) has no matching player in save", gpID, team)
+	for idx, gpID := range gpByIndex {
+		log.Printf("warning: game_players row id=%d (player_index=%d) has no matching player in save", gpID, idx)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
