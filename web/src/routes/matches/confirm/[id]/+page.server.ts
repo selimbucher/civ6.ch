@@ -20,11 +20,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     if (!game.tmp) redirect(303, `/matches/view/${id}`);
 
     const rows = await sql`
-        SELECT id, team, eliminated, leader, pseudo_name, score,
-               population, science, culture, food, production, gold, faith, tourism, favor
-        FROM game_players
-        WHERE game_id = ${id}
-        ORDER BY team, id
+        SELECT gp.id, gp.team, gp.eliminated, gp.leader, gp.pseudo_name, gp.score,
+               gp.population, gp.science, gp.culture, gp.food, gp.production,
+               gp.gold, gp.faith, gp.tourism, gp.favor,
+               psi.player_id AS matched_player_id
+        FROM game_players gp
+        LEFT JOIN player_steam_ids psi ON psi.steam_id = gp.steam_id
+        WHERE gp.game_id = ${id}
+        ORDER BY gp.team, gp.id
     `;
 
     const players = await sql`SELECT id, name FROM players ORDER BY name`;

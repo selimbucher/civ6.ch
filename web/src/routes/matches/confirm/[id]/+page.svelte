@@ -53,7 +53,20 @@
 
     let selectedVictory = $state('');
     let winnerTeam      = $state<number | null>(null);
-    let assignments     = $state<Record<number, number>>({});
+    // Pre-fill assignments from Steam-linked players (one player per slot).
+    let assignments     = $state<Record<number, number>>(initialAssignments());
+
+    function initialAssignments(): Record<number, number> {
+        const out: Record<number, number> = {};
+        const used = new Set<number>();
+        for (const r of data.rows as any[]) {
+            if (r.matched_player_id && !used.has(r.matched_player_id)) {
+                out[r.id] = r.matched_player_id;
+                used.add(r.matched_player_id);
+            }
+        }
+        return out;
+    }
     let updateFile      = $state<File | null>(null);
     let updateInputEl   = $state<HTMLInputElement>();
 

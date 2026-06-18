@@ -495,12 +495,12 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 			INSERT INTO game_players (
 				game_id, team, player_index, leader, pseudo_name, score,
 				population, science, culture, food, production, gold, faith, tourism, favor,
-				mining_researched, eliminated
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+				mining_researched, eliminated, steam_id
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 			RETURNING id`,
 			gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
 			population, science, culture, food, production, gold, faith, tourism, favor,
-			miningResearched, p.Eliminated,
+			miningResearched, p.Eliminated, nullStr(p.SteamID),
 		).Scan(&gpID)
 		if err != nil {
 			return 0, err

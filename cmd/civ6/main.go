@@ -292,8 +292,8 @@ func parseSave(path string, debug bool) {
 	// ── players (from header packets) ────────────────────────────────────────
 	players := civ6save.ParsePlayers(data)
 	for _, p := range players {
-		log.Printf("player[%d] team=%d elim=%v iColor=%d pseudo='%s' leader=%s color=%v",
-			p.Index, p.Team, p.Eliminated, p.IColor, p.Pseudo, p.Leader,
+		log.Printf("player[%d] team=%d elim=%v steam=%s iColor=%d pseudo='%s' leader=%s color=%v",
+			p.Index, p.Team, p.Eliminated, p.SteamID, p.IColor, p.Pseudo, p.Leader,
 			civ6save.PlayerColor(p.Leader, p.IColor))
 	}
 	playerColors := civ6save.BuildPlayerColors(players)

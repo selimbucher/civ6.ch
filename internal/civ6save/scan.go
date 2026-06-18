@@ -16,7 +16,8 @@ var typePlayerMk = []byte{0x95, 0xb9, 0x42, 0xce}
 var pseudoMk = []byte{0xfd, 0x6b, 0xb9, 0xda}
 var leaderStrMk = []byte{0x5f, 0x5e, 0xcd, 0xe8}
 var iColorMk = []byte{0xef, 0x60, 0xaf, 0xcf}
-var teamMk = []byte{0x54, 0xb4, 0x8a, 0x0d} // 0x0D8AB454 — shared-victory team id
+var teamMk = []byte{0x54, 0xb4, 0x8a, 0x0d}    // 0x0D8AB454 — shared-victory team id
+var steamIDMk = []byte{0x9a, 0x24, 0x72, 0x8e} // 0x8E72249A — "persona@steamid64"
 
 const typePlayerFull = 3
 
@@ -30,6 +31,9 @@ type Player struct {
 	Team int
 	// Eliminated is true for major players no longer alive (typePlayer != 3).
 	Eliminated bool
+	// SteamID is the stable SteamID64 extracted from the "persona@steamid64"
+	// packet, used to match a save slot to a registered player.
+	SteamID string
 }
 
 func pktInt(data []byte, offset int) uint32 {
@@ -168,6 +172,16 @@ func ParsePlayers(data []byte) []Player {
 			team = int(pktInt(data, lo+rel))
 		}
 
+		// SteamID — the "persona@steamid64" packet; keep the part after '@'.
+		steamID := ""
+		if sm := findNext(data, steamIDMk, b.pos, blockEnd); sm != -1 {
+			if s := pktStr(data, sm); s != "" {
+				if at := strings.LastIndex(s, "@"); at != -1 {
+					steamID = s[at+1:]
+				}
+			}
+		}
+
 		seen[b.iPlayer] = true
 		players = append(players, Player{
 			Index:      b.iPlayer,
@@ -176,6 +190,7 @@ func ParsePlayers(data []byte) []Player {
 			IColor:     icolor,
 			Team:       team,
 			Eliminated: eliminated,
+			SteamID:    steamID,
 		})
 	}
 

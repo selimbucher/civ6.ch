@@ -166,12 +166,12 @@ func regenerateGame(ctx context.Context, gameID int) {
 					team=$1, leader=$2, pseudo_name=$3, score=$4,
 					population=$5, science=$6, culture=$7, food=$8, production=$9,
 					gold=$10, faith=$11, tourism=$12, favor=$13,
-					mining_researched=$14, eliminated=$15
-				WHERE id=$16`,
+					mining_researched=$14, eliminated=$15, steam_id=$16
+				WHERE id=$17`,
 				int16(p.Team), leader, nullStr(p.Pseudo), score,
 				population, science, culture, food, production,
 				gold, faith, tourism, favor,
-				miningResearched, p.Eliminated, gpID,
+				miningResearched, p.Eliminated, nullStr(p.SteamID), gpID,
 			)
 			if err != nil {
 				log.Fatalf("update game_players %d: %v", gpID, err)
@@ -184,12 +184,12 @@ func regenerateGame(ctx context.Context, gameID int) {
 				INSERT INTO game_players (
 					game_id, team, player_index, leader, pseudo_name, score,
 					population, science, culture, food, production, gold, faith, tourism, favor,
-					mining_researched, eliminated
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+					mining_researched, eliminated, steam_id
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 				RETURNING id`,
 				gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
 				population, science, culture, food, production, gold, faith, tourism, favor,
-				miningResearched, p.Eliminated,
+				miningResearched, p.Eliminated, nullStr(p.SteamID),
 			).Scan(&gpID)
 			if err != nil {
 				log.Fatalf("insert game_players index=%d: %v", p.Index, err)

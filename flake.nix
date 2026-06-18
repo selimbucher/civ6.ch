@@ -155,6 +155,10 @@
                   "PGUSER=civ6"
                   "NODE_PATH=${web}/node_modules"
                   "BODY_SIZE_LIMIT=104857600"
+                  # Correct external origin for the reverse proxy so SvelteKit
+                  # builds absolute URLs (e.g. the Steam OpenID return_to) and
+                  # CSRF checks against https://civ6.ch, not localhost:3000.
+                  "ORIGIN=https://civ6.ch"
                 ];
                 TimeoutStopSec = 10;
               };
