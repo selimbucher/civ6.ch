@@ -16,18 +16,6 @@
 
 <div class="mx-3 md:mx-12 mb-12 flex flex-col gap-4 max-w-3xl">
 
-    <h1 class="font-fancy text-2xl font-semibold text-font-clear mt-2">Preferences</h1>
-
-    {#if steamStatus === 'linked'}
-        <div class="rounded-xl border border-font-good/30 bg-font-good/10 px-4 py-2 text-sm text-font-good">
-            ✓ Steam account linked.
-        </div>
-    {:else if steamStatus === 'error'}
-        <div class="rounded-xl border border-font-bad/30 bg-font-bad/10 px-4 py-2 text-sm text-font-bad">
-            Could not verify your Steam account. Please try again.
-        </div>
-    {/if}
-
     <!-- Steam accounts card -->
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
@@ -39,9 +27,7 @@
                     <span class="font-fancy text-lg font-semibold text-font-clear">Steam Accounts</span>
                 </div>
                 <p class="text-sm text-font-dimer leading-relaxed">
-                    Link your Steam account so uploaded games recognise you automatically — when a
-                    save contains your Steam profile, you'll be pre-selected in the match line-up.
-                    Linking signs you in through Steam once; no password is shared.
+                    Link your Steam account so uploaded games recognise you automatically.
                 </p>
             </div>
 
@@ -90,4 +76,15 @@
             </div>
         </div>
     </div>
+
+    {#if steamStatus === 'linked'}
+        <div class="rounded-xl border border-font-good/30 bg-font-good/10 px-4 py-2 text-sm text-font-good">
+            ✓ Steam account linked.
+        </div>
+    {:else if steamStatus === 'error'}
+        <div class="rounded-xl border border-font-bad/30 bg-font-bad/10 px-4 py-2 text-sm text-font-bad">
+            Could not verify your Steam account. Please try again.
+        </div>
+    {/if}
+    
 </div>
