@@ -22,6 +22,16 @@ export const handle: Handle = async ({ event, resolve }) => {
                 name: session.name,
                 privileges: session.privileges,
             };
+            // Re-issue the cookie as SameSite=Lax so sessions created with the
+            // old 'strict' setting are upgraded transparently (needed for the
+            // Steam OpenID return to carry the session).
+            event.cookies.set('session', token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 30,
+                path: '/'
+            });
         }
     }
 

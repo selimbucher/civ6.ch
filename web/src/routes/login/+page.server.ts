@@ -61,7 +61,9 @@ export const actions: Actions = {
         cookies.set('session', session.token, {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            // 'lax' (not 'strict') so the session cookie is still sent on the
+            // top-level GET redirect back from external sign-ins (Steam OpenID).
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 30,
             path: '/'
         });
