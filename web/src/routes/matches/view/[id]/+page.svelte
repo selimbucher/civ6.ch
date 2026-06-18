@@ -246,7 +246,7 @@
                             <div class="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full {player.winner ? 'bg-font-good' : 'bg-font-bad'}"></div>
 
                             <!-- Portrait -->
-                            <div class="h-11 w-11 rounded-full bg-card-edge overflow-hidden shrink-0 mr-3">
+                            <div class="h-11 w-11 rounded-full bg-card-edge overflow-hidden shrink-0 mr-3 {player.eliminated ? 'grayscale opacity-60' : ''}">
                                 {#if leaderPortrait(player.leader)}
                                     <img src={leaderPortrait(player.leader)!} alt=""
                                          class="h-full w-full object-cover"
@@ -265,6 +265,9 @@
                                     </a>
                                     {#if player.winner}
                                         <img src={universalv} alt="" class="h-4 w-4 shrink-0 opacity-75" />
+                                    {/if}
+                                    {#if player.eliminated}
+                                        <span class="text-[9px] uppercase tracking-wider px-1.5 py-px rounded-full bg-font-bad/10 text-font-bad border border-font-bad/20 shrink-0">Eliminated</span>
                                     {/if}
                                 </div>
                                 {#if player.pseudo_name}

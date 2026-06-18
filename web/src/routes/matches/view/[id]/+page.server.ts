@@ -47,6 +47,7 @@ export const load: PageServerLoad = async ({ params }) => {
                     'leader',              gp.leader,
                     'team',                gp.team,
                     'winner',              gp.winner,
+                    'eliminated',          gp.eliminated,
                     'score',               gp.score,
                     'pre_rating',          gp.pre_rating,
                     'post_rating',         gp.post_rating,
