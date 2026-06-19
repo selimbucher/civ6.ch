@@ -3,8 +3,10 @@
     import { page } from '$app/stores';
     import {
         Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
-        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame, ChevronDown, Search
+        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame, ChevronDown, Search,
+        Image as ImageIcon, Upload, RotateCcw
     } from '@lucide/svelte';
+    import Avatar from '$lib/Avatar.svelte';
     import type { PageData } from './$types';
 
     let { data, form }: { data: PageData; form: any } = $props();
@@ -31,6 +33,25 @@
     let denounceTarget = $state('');
     let denounceOpen = $state(false);
     let denounceSearch = $state('');
+
+    // Avatar: file upload + leader picker.
+    let avatarFile = $state<File | null>(null);
+    let leaderOpen = $state(false);
+    let leaderSearch = $state('');
+    let leaderChoice = $state('');
+    const leaderAssetMap = import.meta.glob<{ default: string }>(
+        '$lib/assets/icons/leaders/*.webp', { eager: true }
+    );
+    const leaderOptions = Object.entries(leaderAssetMap)
+        .map(([k, v]) => {
+            const slug = k.split('/').pop()!.replace('.webp', '').replace('_(Civ6)', '');
+            return { slug, name: slug.replace(/_/g, ' '), src: v.default };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    const filteredLeaders = $derived(
+        leaderOptions.filter((l) => l.name.toLowerCase().includes(leaderSearch.toLowerCase()))
+    );
+    const chosenLeader = $derived(leaderOptions.find((l) => l.slug === leaderChoice));
     const selectedName = $derived(players.find((p: any) => String(p.id) === denounceTarget)?.name ?? '');
     const filteredPlayers = $derived(
         players.filter((p: any) => p.name.toLowerCase().includes(denounceSearch.toLowerCase()))
@@ -87,6 +108,104 @@
 <h1 class="font-fancy text-2xl font-semibold text-font-clear mx-auto w-full max-w-6xl px-4 mt-2 mb-4">Preferences</h1>
 
 <div class="mx-auto w-full max-w-6xl px-4 mb-12 columns-1 lg:columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid">
+
+    <!-- Profile picture -->
+    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
+        <div class="h-[3px] bg-gradient-primary"></div>
+        <div class="p-6 flex flex-col gap-5">
+            {@render head(ImageIcon, 'Profile Picture')}
+            {#if form?.avatarOk}{@render banner(true, 'Profile picture updated.')}{/if}
+            {#if form?.avatarError}{@render banner(false, form.avatarError)}{/if}
+
+            <div class="flex items-center gap-4">
+                <Avatar id={data.user?.id ?? 0} name={data.profile?.name ?? '?'} avatar={data.profile?.avatar}
+                    wrapClass="h-20 w-20 rounded-full border-2 border-card-edge bg-card-2 shrink-0"
+                    letterClass="font-fancy text-3xl font-bold text-primary select-none" />
+
+                <!-- Upload an image -->
+                <form method="POST" action="?/avatar_upload" enctype="multipart/form-data" use:enhance
+                    class="flex-1 flex flex-col gap-2 min-w-0">
+                    <label class="flex items-center gap-2 rounded-lg border border-card-edge bg-card-2 px-3 py-2 cursor-pointer hover:bg-select transition-colors duration-150">
+                        <Upload class="h-4 w-4 text-font-dimer shrink-0" strokeWidth={1.5} />
+                        <span class="text-sm text-font-dimer truncate">{avatarFile ? avatarFile.name : 'Upload an image…'}</span>
+                        <input type="file" name="avatar" accept="image/*" class="hidden"
+                            onchange={(e) => (avatarFile = (e.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
+                    </label>
+                    <button type="submit" disabled={!avatarFile}
+                        class="self-start inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-semibold transition-all duration-150
+                               {avatarFile
+                                 ? 'bg-gradient-primary text-black hover:brightness-125 cursor-pointer'
+                                 : 'border border-card-edge text-font-dimest cursor-not-allowed opacity-50'}">
+                        Upload
+                    </button>
+                </form>
+            </div>
+
+            <!-- Or pick a leader -->
+            <form method="POST" action="?/avatar_leader" use:enhance={() => { leaderOpen = false; }}
+                class="flex items-end gap-2">
+                <input type="hidden" name="leader" value={leaderChoice} />
+                <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Or choose a leader</span>
+                    <div class="relative">
+                        <button type="button" onclick={() => (leaderOpen = !leaderOpen)}
+                            class="w-full flex items-center justify-between gap-2 rounded-lg border bg-card-2 px-3 py-2 text-sm transition-colors duration-150 cursor-pointer
+                                   {leaderOpen ? 'border-primary/40' : 'border-card-edge hover:border-card-edge-2'}">
+                            <span class="flex items-center gap-2 min-w-0">
+                                {#if chosenLeader}
+                                    <img src={chosenLeader.src} alt="" class="h-5 w-5 rounded-full object-cover shrink-0" />
+                                    <span class="truncate text-font-clear">{chosenLeader.name}</span>
+                                {:else}
+                                    <span class="text-font-dimest">Choose a leader…</span>
+                                {/if}
+                            </span>
+                            <ChevronDown class="h-4 w-4 text-font-dimer shrink-0 transition-transform duration-150 {leaderOpen ? 'rotate-180' : ''}" />
+                        </button>
+                        {#if leaderOpen}
+                            <button type="button" class="fixed inset-0 z-10 cursor-default" tabindex="-1" aria-hidden="true" onclick={() => (leaderOpen = false)}></button>
+                            <div class="absolute z-20 mt-1 w-full rounded-lg border border-card-edge bg-card shadow-lg shadow-darken overflow-hidden">
+                                <div class="flex items-center gap-2 px-3 py-2 border-b border-card-edge">
+                                    <Search class="h-3.5 w-3.5 text-font-dimest shrink-0" />
+                                    <!-- svelte-ignore a11y_autofocus -->
+                                    <input bind:value={leaderSearch} autofocus placeholder="Search leaders…"
+                                        class="w-full bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
+                                </div>
+                                <div class="max-h-60 overflow-y-auto py-1">
+                                    {#each filteredLeaders as l}
+                                        <button type="button"
+                                            onclick={() => { leaderChoice = l.slug; leaderOpen = false; leaderSearch = ''; }}
+                                            class="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
+                                                   {l.slug === leaderChoice ? 'bg-primary/15 text-primary' : 'text-font-dim hover:bg-select hover:text-font-clear'}">
+                                            <img src={l.src} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
+                                            <span class="truncate">{l.name}</span>
+                                        </button>
+                                    {:else}
+                                        <div class="px-3 py-2 text-sm text-font-dimest italic">No leaders found.</div>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+                <button type="submit" disabled={!leaderChoice}
+                    class="shrink-0 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150
+                           {leaderChoice
+                             ? 'bg-gradient-primary text-black hover:brightness-125 cursor-pointer'
+                             : 'border border-card-edge text-font-dimest cursor-not-allowed opacity-50'}">
+                    Use leader
+                </button>
+            </form>
+
+            {#if data.profile?.avatar}
+                <form method="POST" action="?/avatar_clear" use:enhance>
+                    <button type="submit"
+                        class="flex items-center gap-1.5 text-xs text-font-dimest hover:text-font-dim transition-colors duration-150 cursor-pointer">
+                        <RotateCcw class="h-3.5 w-3.5" /> Reset to letter
+                    </button>
+                </form>
+            {/if}
+        </div>
+    </div>
 
     <!-- Profile -->
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">

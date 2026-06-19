@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     if (isNaN(id)) error(400, 'Invalid player ID');
 
     const [player] = await sql`
-        SELECT id, name, achievement_points, achievement_bitstring, streak, active
+        SELECT id, name, achievement_points, achievement_bitstring, streak, active, avatar
         FROM players
         WHERE id = ${id}
     `;

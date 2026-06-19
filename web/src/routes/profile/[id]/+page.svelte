@@ -8,6 +8,7 @@
     import scorev from '$lib/assets/icons/vcondition/score.png';
     import capitulationv from '$lib/assets/icons/vcondition/capitulation.png';
     import { Trophy, Flame, Star, Clock, ChevronRight, Medal, Angry } from '@lucide/svelte';
+    import Avatar from '$lib/Avatar.svelte';
     import RatingChart from '$lib/RatingChart.svelte';
 
     const leaderAssets = import.meta.glob<{ default: string }>(
@@ -138,13 +139,11 @@
         <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-primary"></div>
 
         <div class="flex flex-col md:flex-row items-center md:items-start gap-5 px-5 md:px-10 py-6 md:py-8">
-            <!-- Avatar placeholder -->
+            <!-- Avatar -->
             <div class="shrink-0 relative">
-                <div class="h-20 w-20 rounded-full border-2 border-card-edge bg-card-2 flex items-center justify-center text-font-dimest">
-                    <span class="font-fancy text-3xl font-bold text-primary select-none">
-                        {data.player.name.charAt(0).toUpperCase()}
-                    </span>
-                </div>
+                <Avatar id={data.player.id} name={data.player.name} avatar={data.player.avatar}
+                    wrapClass="h-20 w-20 rounded-full border-2 border-card-edge bg-card-2"
+                    letterClass="font-fancy text-3xl font-bold text-primary select-none" />
                 {#if overallRank === 1}
                     <div class="absolute bottom-0 right-0 text-primary">
                         <Trophy class="h-6 w-6" strokeWidth={1.8} />

@@ -54,6 +54,8 @@ func main() {
 	// Dynamic REST routes using Go 1.22+ parameter matching
 	http.HandleFunc("GET /files/saves/{id}", s.handleGetSave)
 	http.HandleFunc("GET /files/maps/{id}", s.handleGetMap)
+	http.HandleFunc("GET /files/avatars/{id}", s.handleGetAvatar)
+	http.HandleFunc("POST /players/{id}/avatar", s.handleUploadAvatar)
 	http.HandleFunc("DELETE /games/{id}", s.handleDeleteGameFiles)
 	http.HandleFunc("POST /games/{id}/update", s.handleUpdateSave)
 
@@ -211,6 +213,48 @@ func (s *server) handleGetSave(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, filename))
 	io.Copy(w, gr)
+}
+
+// ── Avatars ────────────────────────────────────────────────────────────────────
+
+func (s *server) handleUploadAvatar(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	// Cap at 6 MB; the web layer already validates type/size.
+	data, err := io.ReadAll(io.LimitReader(r.Body, 6<<20))
+	if err != nil || len(data) == 0 {
+		http.Error(w, "failed to read body", http.StatusBadRequest)
+		return
+	}
+	ct := r.Header.Get("Content-Type")
+	if ct == "" {
+		ct = http.DetectContentType(data)
+	}
+	if err := s.store.Put(r.Context(), fmt.Sprintf("avatars/%d", id), data, ct); err != nil {
+		http.Error(w, fmt.Sprintf("store error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *server) handleGetAvatar(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	data, err := s.store.Get(r.Context(), fmt.Sprintf("avatars/%d", id))
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	// Avatars change in place, so revalidate rather than cache hard.
+	w.Header().Set("Content-Type", http.DetectContentType(data))
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(data)
 }
 
 func (s *server) handleGetMap(w http.ResponseWriter, r *http.Request) {

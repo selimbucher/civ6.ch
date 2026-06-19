@@ -5,6 +5,7 @@ import { verify, hash } from '@node-rs/argon2';
 import type { Actions, PageServerLoad } from './$types';
 
 const sql = postgres();
+const GO_SERVER = process.env.GO_SERVER_URL ?? 'http://localhost:8080';
 
 // Notification preference keys persisted in users.settings.notify.
 const NOTIFY_KEYS = ['new_game', 'denounced', 'weekly', 'achievement'] as const;
@@ -14,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     const me = locals.user.id;
 
     const [profile] = await sql`
-        SELECT u.username, u.email, u.settings, p.name, p.active
+        SELECT u.username, u.email, u.settings, p.name, p.active, p.avatar
         FROM users u
         LEFT JOIN players p ON p.id = u.id
         WHERE u.id = ${me}
@@ -111,6 +112,47 @@ export const actions: Actions = {
         const newHash = await hash(next);
         await sql`UPDATE users SET pw_hash = ${newHash}, pw_attempts = 0 WHERE id = ${locals.user.id}`;
         return { passwordOk: true };
+    },
+
+    // ── Profile picture ────────────────────────────────────────────────────────
+    avatar_upload: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const data = await request.formData();
+        const file = data.get('avatar');
+        if (!(file instanceof File) || file.size === 0)
+            return fail(400, { avatarError: 'Choose an image to upload' });
+        if (!file.type.startsWith('image/'))
+            return fail(400, { avatarError: 'That file is not an image' });
+        if (file.size > 5 * 1024 * 1024)
+            return fail(400, { avatarError: 'Image must be under 5 MB' });
+
+        let res: Response;
+        try {
+            res = await fetch(`${GO_SERVER}/players/${locals.user.id}/avatar`, {
+                method: 'POST',
+                headers: { 'Content-Type': file.type },
+                body: await file.arrayBuffer()
+            });
+        } catch {
+            return fail(502, { avatarError: 'Upload service unavailable' });
+        }
+        if (!res.ok) return fail(500, { avatarError: 'Upload failed' });
+
+        await sql`UPDATE players SET avatar = 'upload' WHERE id = ${locals.user.id}`;
+        return { avatarOk: true };
+    },
+    avatar_leader: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const data = await request.formData();
+        const slug = (data.get('leader') as string ?? '').trim();
+        if (!slug) return fail(400, { avatarError: 'Choose a leader' });
+        await sql`UPDATE players SET avatar = ${'leader:' + slug} WHERE id = ${locals.user.id}`;
+        return { avatarOk: true };
+    },
+    avatar_clear: async ({ locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        await sql`UPDATE players SET avatar = NULL WHERE id = ${locals.user.id}`;
+        return { avatarOk: true };
     },
 
     // ── Notification preferences (the Town Crier) ──────────────────────────────
