@@ -7,7 +7,7 @@ export async function load({ url }) {
 
     const overall = await sql`
         SELECT
-            p.id, p.name,
+            p.id, p.name, p.avatar,
             COALESCE(pr.rating, 1500) as rating,
             COALESCE(pr.rd, 1500) as rd,
             COALESCE(ps.games, 0) as games,
@@ -31,7 +31,7 @@ export async function load({ url }) {
 
     const categorical = await sql`
         SELECT
-            p.id, p.name,
+            p.id, p.name, p.avatar,
             COALESCE(pr.rating, 1500) as rating,
             COALESCE(pr.rd, 1500) as rd,
             COALESCE(ps.games, 0) as games,

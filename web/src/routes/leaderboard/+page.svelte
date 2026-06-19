@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { Flame, Medal, Trophy } from '@lucide/svelte';
+  import Avatar from '$lib/Avatar.svelte';
 
   const tabs = ['FFA', 'Teams', '1v1'];
   const categoryMap: Record<string, string> = {
@@ -21,21 +22,6 @@
     i === 2 ? 'text-[#CD7F32]' :
     'text-font-dimest';
 
-  const leaderAssets = import.meta.glob<{ default: string }>(
-    '$lib/assets/icons/leaders/*.webp', { eager: true }
-  );
-  function leaderPortrait(leader: string | null): string | null {
-    if (!leader) return null;
-    const slug = leader.trim().replace(/\s+/g, '_');
-    const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    const keys = Object.keys(leaderAssets);
-    const key =
-      keys.find(k => k.includes(`/${slug}_(Civ6).`)) ??
-      keys.find(k => k.toLowerCase().includes(`/${slug.toLowerCase()}_(civ6).`)) ??
-      keys.find(k => norm(k).includes(`/${norm(slug)}_(civ6).`));
-    return key ? leaderAssets[key].default : null;
-  }
-
   // order: 2nd left, 1st center, 3rd right
   const PODIUM = [
     { idx: 1, color: '#B0B8C8',              blockH: 56,  portraitPx: 64  },
@@ -53,17 +39,12 @@
       {#if player}
         <div class="flex flex-col items-center gap-2" style="width: 140px">
           <!-- Portrait -->
-          <div class="rounded-full overflow-hidden bg-card-edge shrink-0"
+          <div class="rounded-full overflow-visible shrink-0 flex items-center justify-center bg-card-edge"
                style="width:{portraitPx}px; height:{portraitPx}px;
                       box-shadow: 0 0 0 2px var(--color-card), 0 0 0 3.5px color-mix(in srgb, {color} 50%, transparent)">
-            {#if leaderPortrait(player.top_leader)}
-              <img src={leaderPortrait(player.top_leader)} alt=""
-                   class="w-full h-full object-cover" />
-            {:else if player.top_leader}
-              <div class="w-full h-full flex items-center justify-center text-font-dimest text-xs font-bold select-none">?</div>
-            {:else}
-              <div class="w-full h-full"></div>
-            {/if}
+            <Avatar id={player.id} name={player.name} avatar={player.avatar || (player.top_leader ? `leader:${player.top_leader}` : null)}
+                    wrapClass="w-full h-full rounded-full bg-card-edge"
+                    letterClass="text-font-dimest text-xl font-bold font-fancy select-none" />
           </div>
           <!-- Name + rating -->
           <div class="text-center">

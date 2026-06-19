@@ -28,18 +28,27 @@
         return key ? leaderAssets[key].default : null;
     }
 
+    const isLeader = $derived(avatar?.startsWith('leader:'));
     const src = $derived(
         !avatar
             ? null
-            : avatar.startsWith('leader:')
-              ? leaderPortrait(avatar.slice(7))
+            : isLeader
+              ? leaderPortrait(avatar!.slice(7))
               : avatar === 'upload'
                 ? `/files/avatars/${id}`
                 : null
     );
+
+    // Leader icons have built-in borders and transparency. Removing bg and border
+    // classes prevents double-borders and inner-fill artifacts.
+    const finalWrapClass = $derived(
+        isLeader
+            ? wrapClass.replace(/\bborder(?:-[a-z0-9-]+)?\b/g, '').replace(/\bbg-[a-z0-9-]+\b/g, '') + ' scale-[1.05]'
+            : wrapClass
+    );
 </script>
 
-<div class="overflow-hidden flex items-center justify-center {wrapClass}">
+<div class="overflow-hidden flex items-center justify-center {finalWrapClass}">
     {#if src}
         <img {src} alt="" class="h-full w-full object-cover" />
     {:else}
