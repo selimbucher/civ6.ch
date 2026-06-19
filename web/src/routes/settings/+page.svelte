@@ -3,10 +3,11 @@
     import { page } from '$app/stores';
     import {
         Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
-        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame, ChevronDown, Search,
+        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame,
         Image as ImageIcon, Upload, RotateCcw
     } from '@lucide/svelte';
     import Avatar from '$lib/Avatar.svelte';
+    import Dropdown from '$lib/Dropdown.svelte';
     import type { PageData } from './$types';
 
     let { data, form }: { data: PageData; form: any } = $props();
@@ -31,31 +32,20 @@
     $effect(() => { notif = { ...(data.notify ?? {}) }; });
 
     let denounceTarget = $state('');
-    let denounceOpen = $state(false);
-    let denounceSearch = $state('');
+    const playerItems = $derived(players.map((p: any) => ({ value: String(p.id), label: p.name })));
 
     // Avatar: file upload + leader picker.
     let avatarFile = $state<File | null>(null);
-    let leaderOpen = $state(false);
-    let leaderSearch = $state('');
     let leaderChoice = $state('');
     const leaderAssetMap = import.meta.glob<{ default: string }>(
         '$lib/assets/icons/leaders/*.webp', { eager: true }
     );
-    const leaderOptions = Object.entries(leaderAssetMap)
+    const leaderItems = Object.entries(leaderAssetMap)
         .map(([k, v]) => {
             const slug = k.split('/').pop()!.replace('.webp', '').replace('_(Civ6)', '');
-            return { slug, name: slug.replace(/_/g, ' '), src: v.default };
+            return { value: slug, label: slug.replace(/_/g, ' '), img: v.default };
         })
-        .sort((a, b) => a.name.localeCompare(b.name));
-    const filteredLeaders = $derived(
-        leaderOptions.filter((l) => l.name.toLowerCase().includes(leaderSearch.toLowerCase()))
-    );
-    const chosenLeader = $derived(leaderOptions.find((l) => l.slug === leaderChoice));
-    const selectedName = $derived(players.find((p: any) => String(p.id) === denounceTarget)?.name ?? '');
-    const filteredPlayers = $derived(
-        players.filter((p: any) => p.name.toLowerCase().includes(denounceSearch.toLowerCase()))
-    );
+        .sort((a, b) => a.label.localeCompare(b.label));
 </script>
 
 {#snippet steamIcon(cls: string)}
@@ -142,50 +132,11 @@
             </div>
 
             <!-- Or pick a leader -->
-            <form method="POST" action="?/avatar_leader" use:enhance={() => { leaderOpen = false; }}
-                class="flex items-end gap-2">
+            <form method="POST" action="?/avatar_leader" use:enhance class="flex items-end gap-2">
                 <input type="hidden" name="leader" value={leaderChoice} />
                 <div class="flex flex-col gap-1.5 flex-1 min-w-0">
                     <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Or choose a leader</span>
-                    <div class="relative">
-                        <button type="button" onclick={() => (leaderOpen = !leaderOpen)}
-                            class="w-full flex items-center justify-between gap-2 rounded-lg border bg-card-2 px-3 py-2 text-sm transition-colors duration-150 cursor-pointer
-                                   {leaderOpen ? 'border-primary/40' : 'border-card-edge hover:border-card-edge-2'}">
-                            <span class="flex items-center gap-2 min-w-0">
-                                {#if chosenLeader}
-                                    <img src={chosenLeader.src} alt="" class="h-5 w-5 rounded-full object-cover shrink-0" />
-                                    <span class="truncate text-font-clear">{chosenLeader.name}</span>
-                                {:else}
-                                    <span class="text-font-dimest">Choose a leader…</span>
-                                {/if}
-                            </span>
-                            <ChevronDown class="h-4 w-4 text-font-dimer shrink-0 transition-transform duration-150 {leaderOpen ? 'rotate-180' : ''}" />
-                        </button>
-                        {#if leaderOpen}
-                            <button type="button" class="fixed inset-0 z-10 cursor-default" tabindex="-1" aria-hidden="true" onclick={() => (leaderOpen = false)}></button>
-                            <div class="absolute z-20 mt-1 w-full rounded-lg border border-card-edge bg-card shadow-lg shadow-darken overflow-hidden">
-                                <div class="flex items-center gap-2 px-3 py-2 border-b border-card-edge">
-                                    <Search class="h-3.5 w-3.5 text-font-dimest shrink-0" />
-                                    <!-- svelte-ignore a11y_autofocus -->
-                                    <input bind:value={leaderSearch} autofocus placeholder="Search leaders…"
-                                        class="w-full bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
-                                </div>
-                                <div class="max-h-60 overflow-y-auto py-1">
-                                    {#each filteredLeaders as l}
-                                        <button type="button"
-                                            onclick={() => { leaderChoice = l.slug; leaderOpen = false; leaderSearch = ''; }}
-                                            class="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
-                                                   {l.slug === leaderChoice ? 'bg-primary/15 text-primary' : 'text-font-dim hover:bg-select hover:text-font-clear'}">
-                                            <img src={l.src} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
-                                            <span class="truncate">{l.name}</span>
-                                        </button>
-                                    {:else}
-                                        <div class="px-3 py-2 text-sm text-font-dimest italic">No leaders found.</div>
-                                    {/each}
-                                </div>
-                            </div>
-                        {/if}
-                    </div>
+                    <Dropdown bind:value={leaderChoice} items={leaderItems} placeholder="Choose a leader…" />
                 </div>
                 <button type="submit" disabled={!leaderChoice}
                     class="shrink-0 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150
@@ -294,8 +245,8 @@
     </div>
 
     <!-- Diplomacy (denounce / forgive) -->
-    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken">
-        <div class="h-[3px] bg-gradient-primary rounded-t-[15px]"></div>
+    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
+        <div class="h-[3px] bg-gradient-primary"></div>
         <div class="p-6 flex flex-col gap-5">
             <div class="flex flex-col gap-1">
                 {@render head(Megaphone, 'Diplomacy')}
@@ -307,50 +258,11 @@
             {#if form?.forgiveOk}{@render banner(true, 'Forgiven. How magnanimous.')}{/if}
             {#if form?.diploError}{@render banner(false, form.diploError)}{/if}
 
-            <form method="POST" action="?/denounce" use:enhance={() => { denounceOpen = false; }} class="flex items-end gap-2">
+            <form method="POST" action="?/denounce" use:enhance class="flex items-end gap-2">
                 <input type="hidden" name="player_id" value={denounceTarget} />
                 <div class="flex flex-col gap-1.5 flex-1 min-w-0">
                     <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Denounce a player</span>
-
-                    <!-- Custom dropdown -->
-                    <div class="relative">
-                        <button type="button" onclick={() => (denounceOpen = !denounceOpen)}
-                            class="w-full flex items-center justify-between gap-2 rounded-lg border bg-card-2 px-3 py-2 text-sm
-                                   transition-colors duration-150 cursor-pointer
-                                   {denounceOpen ? 'border-primary/40' : 'border-card-edge hover:border-card-edge-2'}">
-                            <span class="truncate {selectedName ? 'text-font-clear' : 'text-font-dimest'}">
-                                {selectedName || 'Choose a rival…'}
-                            </span>
-                            <ChevronDown class="h-4 w-4 text-font-dimer shrink-0 transition-transform duration-150 {denounceOpen ? 'rotate-180' : ''}" />
-                        </button>
-
-                        {#if denounceOpen}
-                            <button type="button" class="fixed inset-0 z-10 cursor-default" tabindex="-1"
-                                aria-hidden="true" onclick={() => (denounceOpen = false)}></button>
-                            <div class="absolute z-20 mt-1 w-full rounded-lg border border-card-edge bg-card shadow-lg shadow-darken overflow-hidden">
-                                <div class="flex items-center gap-2 px-3 py-2 border-b border-card-edge">
-                                    <Search class="h-3.5 w-3.5 text-font-dimest shrink-0" />
-                                    <!-- svelte-ignore a11y_autofocus -->
-                                    <input bind:value={denounceSearch} autofocus placeholder="Search players…"
-                                        class="w-full bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
-                                </div>
-                                <div class="max-h-60 overflow-y-auto py-1">
-                                    {#each filteredPlayers as p}
-                                        <button type="button"
-                                            onclick={() => { denounceTarget = String(p.id); denounceOpen = false; denounceSearch = ''; }}
-                                            class="w-full text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
-                                                   {String(p.id) === denounceTarget
-                                                     ? 'bg-primary/15 text-primary'
-                                                     : 'text-font-dim hover:bg-select hover:text-font-clear'}">
-                                            {p.name}
-                                        </button>
-                                    {:else}
-                                        <div class="px-3 py-2 text-sm text-font-dimest italic">No players found.</div>
-                                    {/each}
-                                </div>
-                            </div>
-                        {/if}
-                    </div>
+                    <Dropdown bind:value={denounceTarget} items={playerItems} placeholder="Choose a rival…" />
                 </div>
 
                 <button type="submit" disabled={!denounceTarget}
