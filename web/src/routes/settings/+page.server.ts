@@ -32,14 +32,29 @@ export const actions: Actions = {
         if (!locals.user) return fail(401, { error: 'Not logged in' });
         const data = await request.formData();
 
-        const name = (data.get('name') as string ?? '').trim();
+        const first = (data.get('first') as string ?? '').trim();
+        const last = (data.get('last') as string ?? '').trim();
         const emailRaw = (data.get('email') as string ?? '').trim();
         const email = emailRaw === '' ? null : emailRaw;
+        const password = data.get('password') as string;
 
-        if (name.length < 2 || name.length > 40)
-            return fail(400, { profileError: 'Display name must be 2–40 characters' });
+        if (!first || !last)
+            return fail(400, { profileError: 'First and last name are both required' });
+        if (first.length > 30 || last.length > 30)
+            return fail(400, { profileError: 'Names must be 30 characters or fewer' });
         if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
             return fail(400, { profileError: 'That email address looks invalid' });
+        if (!password)
+            return fail(400, { profileError: 'Enter your current password to save changes' });
+
+        // Profile changes require confirming the current password.
+        const [user] = await sql`SELECT pw_hash FROM users WHERE id = ${locals.user.id}`;
+        if (!user) return fail(404, { profileError: 'Account not found' });
+        const isBcrypt = user.pw_hash.startsWith('$2y$') || user.pw_hash.startsWith('$2b$');
+        const valid = isBcrypt
+            ? await bcryptCompare(password, user.pw_hash.replace(/^\$2y\$/, '$2b$'))
+            : await verify(user.pw_hash, password);
+        if (!valid) return fail(401, { profileError: 'Current password is incorrect' });
 
         if (email) {
             const [clash] = await sql`
@@ -48,6 +63,7 @@ export const actions: Actions = {
             if (clash) return fail(400, { profileError: 'That email is already in use' });
         }
 
+        const name = `${first} ${last}`;
         await sql`UPDATE players SET name = ${name} WHERE id = ${locals.user.id}`;
         await sql`UPDATE users SET email = ${email} WHERE id = ${locals.user.id}`;
         return { profileOk: true };

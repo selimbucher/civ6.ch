@@ -1,8 +1,11 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { page } from '$app/stores';
+    import { onMount } from 'svelte';
+    import { browser } from '$app/environment';
     import {
-        Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut
+        Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
+        Sparkles, PartyPopper, WandSparkles, Rows3, EyeOff, RotateCcw
     } from '@lucide/svelte';
     import type { PageData } from './$types';
 
@@ -11,12 +14,38 @@
 
     const steamStatus = $derived($page.url.searchParams.get('steam'));
 
-    let name = $state(data.profile?.name ?? '');
-    let email = $state(data.profile?.email ?? '');
+    // Uncontrolled inputs: value derives from server data, so a successful save
+    // (which reloads data + resets the form) shows the saved values rather than
+    // going blank. The name is stored as "First Last".
+    const fullName  = $derived((data.profile?.name ?? '') as string);
+    const firstName = $derived(fullName.split(' ')[0] ?? '');
+    const lastName  = $derived(fullName.split(' ').slice(1).join(' '));
+    const email     = $derived((data.profile?.email ?? '') as string);
 
     function fmtDate(d: string | Date) {
         return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     }
+
+    // ── Cosmetic, site-side extras (persisted locally) ─────────────────────────
+    type Toggle = { id: string; icon: any; label: string; desc: string };
+    const extras: Toggle[] = [
+        { id: 'confetti', icon: PartyPopper, label: 'Confetti on your victories', desc: 'Rain confetti on match pages you won. You earned it.' },
+        { id: 'dramatic', icon: WandSparkles,       label: 'Dramatic rating reveals',     desc: 'Animate rating changes with entirely unnecessary flourish.' },
+        { id: 'compact',  icon: Rows3,       label: 'Compact match feed',          desc: 'Tighter spacing in the matches list for the data-hungry.' },
+        { id: 'amnesia',  icon: EyeOff,      label: 'Selective memory',            desc: 'Dim your defeats so your profile is all glorious wins.' }
+    ];
+    const extraDefaults: Record<string, boolean> = { confetti: true, dramatic: false, compact: false, amnesia: false };
+
+    let prefs = $state<Record<string, boolean>>({ ...extraDefaults });
+    let toast = $state<string | null>(null);
+
+    onMount(() => {
+        try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem('civ6_prefs') ?? '{}') }; }
+        catch { /* keep defaults */ }
+    });
+    $effect(() => { if (browser) localStorage.setItem('civ6_prefs', JSON.stringify(prefs)); });
+
+    function flash(msg: string) { toast = msg; setTimeout(() => (toast = null), 2400); }
 </script>
 
 {#snippet steamIcon(cls: string)}
@@ -43,7 +72,27 @@
     </div>
 {/snippet}
 
-<div class="mx-3 md:mx-12 mb-12 flex flex-col gap-4 max-w-3xl">
+{#snippet field(label: string, name: string, type: string, value: string, placeholder: string)}
+    <label class="flex flex-col gap-1.5 flex-1">
+        <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">{label}</span>
+        <input {name} {type} {value} {placeholder} autocomplete="off"
+            class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
+                   outline-none focus:border-primary/40 placeholder:text-font-dimest" />
+    </label>
+{/snippet}
+
+{#snippet toggle(id: string)}
+    {@const on = prefs[id] === true}
+    <button type="button" role="switch" aria-checked={on} aria-label="toggle"
+        onclick={() => (prefs[id] = !on)}
+        class="relative h-5.5 w-10 rounded-full transition-colors duration-150 shrink-0 cursor-pointer
+               {on ? 'bg-primary' : 'bg-card-edge-2'}">
+        <span class="absolute top-0.5 left-0.5 h-4.5 w-4.5 rounded-full bg-font-clear shadow-sm transition-transform duration-150
+                     {on ? 'translate-x-4.5' : ''}"></span>
+    </button>
+{/snippet}
+
+<div class="mx-auto w-full max-w-3xl px-3 md:px-6 mb-12 flex flex-col gap-4">
 
     <div class="flex flex-col gap-1 mt-2">
         <h1 class="font-fancy text-2xl font-semibold text-font-clear">Preferences</h1>
@@ -54,27 +103,24 @@
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <form method="POST" action="?/profile" use:enhance class="p-6 flex flex-col gap-5">
-            {@render sectionHead(User, 'Profile', 'Your public display name and contact email.')}
+            {@render sectionHead(User, 'Profile', 'Your name as shown across civ6.ch, and your contact email.')}
 
             {#if form?.profileOk}{@render banner(true, 'Profile updated.')}{/if}
             {#if form?.profileError}{@render banner(false, form.profileError)}{/if}
 
             <div class="flex flex-col gap-4">
-                <label class="flex flex-col gap-1.5">
-                    <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Display name</span>
-                    <input name="name" bind:value={name} maxlength="40" autocomplete="off"
-                        class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
-                               outline-none focus:border-primary/40 placeholder:text-font-dimest" />
-                    <span class="text-xs text-font-dimest">Shown on the leaderboard, matches and your profile.</span>
-                </label>
-                <label class="flex flex-col gap-1.5">
-                    <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Email</span>
-                    <input name="email" type="email" bind:value={email} autocomplete="off"
-                        placeholder="you@example.com"
-                        class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
-                               outline-none focus:border-primary/40 placeholder:text-font-dimest" />
+                <div class="flex flex-col sm:flex-row gap-4">
+                    {@render field('First name', 'first', 'text', firstName, '')}
+                    {@render field('Last name', 'last', 'text', lastName, '')}
+                </div>
+                <div class="flex flex-col gap-1">
+                    {@render field('Email', 'email', 'email', email, 'you@example.com')}
                     <span class="text-xs text-font-dimest">Used to sign in and recover your account. Never shown publicly.</span>
-                </label>
+                </div>
+                <div class="flex flex-col gap-1">
+                    {@render field('Current password', 'password', 'password', '', '')}
+                    <span class="text-xs text-font-dimest">Required to confirm changes to your account.</span>
+                </div>
             </div>
 
             <div>
@@ -98,25 +144,10 @@
             {#if form?.signedOut}{@render banner(true, 'Signed out of all other devices.')}{/if}
 
             <form method="POST" action="?/password" use:enhance class="flex flex-col gap-4">
-                <label class="flex flex-col gap-1.5">
-                    <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Current password</span>
-                    <input name="current" type="password" autocomplete="current-password"
-                        class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
-                               outline-none focus:border-primary/40" />
-                </label>
+                {@render field('Current password', 'current', 'password', '', '')}
                 <div class="flex flex-col sm:flex-row gap-4">
-                    <label class="flex flex-col gap-1.5 flex-1">
-                        <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">New password</span>
-                        <input name="new" type="password" autocomplete="new-password"
-                            class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
-                                   outline-none focus:border-primary/40" />
-                    </label>
-                    <label class="flex flex-col gap-1.5 flex-1">
-                        <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Confirm new password</span>
-                        <input name="confirm" type="password" autocomplete="new-password"
-                            class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
-                                   outline-none focus:border-primary/40" />
-                    </label>
+                    {@render field('New password', 'new', 'password', '', '')}
+                    {@render field('Confirm new password', 'confirm', 'password', '', '')}
                 </div>
                 <div>
                     <button type="submit"
@@ -204,4 +235,37 @@
             </div>
         </div>
     </div>
+
+    <!-- Extras (cosmetic) -->
+    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
+        <div class="h-[3px] bg-gradient-primary"></div>
+        <div class="p-6 flex flex-col gap-5">
+            {@render sectionHead(Sparkles, 'Extras', 'Purely cosmetic. Saved to this device, harmless to your rating.')}
+            <div class="flex flex-col divide-y divide-card-edge">
+                {#each extras as item}
+                    <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                        <item.icon class="h-4.5 w-4.5 text-font-dimer shrink-0" strokeWidth={1.5} />
+                        <div class="flex flex-col leading-tight flex-1 min-w-0">
+                            <span class="text-sm text-font-clear">{item.label}</span>
+                            <span class="text-xs text-font-dimest mt-0.5">{item.desc}</span>
+                        </div>
+                        {@render toggle(item.id)}
+                    </div>
+                {/each}
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick={() => { prefs = { ...extraDefaults }; flash('Extras reset to defaults.'); }}
+                    class="flex items-center gap-1.5 text-xs text-font-dimest hover:text-font-dim transition-colors duration-150 cursor-pointer">
+                    <RotateCcw class="h-3.5 w-3.5" /> Reset extras
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+
+{#if toast}
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl border border-card-edge bg-card px-4 py-2.5
+                text-sm text-font-clear shadow-lg shadow-darken">
+        {toast}
+    </div>
+{/if}
