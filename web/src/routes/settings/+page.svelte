@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import {
         Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
-        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame
+        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame, ChevronDown, Search
     } from '@lucide/svelte';
     import type { PageData } from './$types';
 
@@ -29,6 +29,12 @@
     $effect(() => { notif = { ...(data.notify ?? {}) }; });
 
     let denounceTarget = $state('');
+    let denounceOpen = $state(false);
+    let denounceSearch = $state('');
+    const selectedName = $derived(players.find((p: any) => String(p.id) === denounceTarget)?.name ?? '');
+    const filteredPlayers = $derived(
+        players.filter((p: any) => p.name.toLowerCase().includes(denounceSearch.toLowerCase()))
+    );
 </script>
 
 {#snippet steamIcon(cls: string)}
@@ -182,18 +188,52 @@
             {#if form?.forgiveOk}{@render banner(true, 'Forgiven. How magnanimous.')}{/if}
             {#if form?.diploError}{@render banner(false, form.diploError)}{/if}
 
-            <form method="POST" action="?/denounce" use:enhance class="flex items-end gap-2">
-                <label class="flex flex-col gap-1.5 flex-1 min-w-0">
+            <form method="POST" action="?/denounce" use:enhance={() => { denounceOpen = false; }} class="flex items-end gap-2">
+                <input type="hidden" name="player_id" value={denounceTarget} />
+                <div class="flex flex-col gap-1.5 flex-1 min-w-0">
                     <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Denounce a player</span>
-                    <select name="player_id" bind:value={denounceTarget}
-                        class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-dim
-                               outline-none focus:border-primary/40 cursor-pointer">
-                        <option value="" disabled>Choose a rival…</option>
-                        {#each players as p}
-                            <option value={String(p.id)}>{p.name}</option>
-                        {/each}
-                    </select>
-                </label>
+
+                    <!-- Custom dropdown -->
+                    <div class="relative">
+                        <button type="button" onclick={() => (denounceOpen = !denounceOpen)}
+                            class="w-full flex items-center justify-between gap-2 rounded-lg border bg-card-2 px-3 py-2 text-sm
+                                   transition-colors duration-150 cursor-pointer
+                                   {denounceOpen ? 'border-primary/40' : 'border-card-edge hover:border-card-edge-2'}">
+                            <span class="truncate {selectedName ? 'text-font-clear' : 'text-font-dimest'}">
+                                {selectedName || 'Choose a rival…'}
+                            </span>
+                            <ChevronDown class="h-4 w-4 text-font-dimer shrink-0 transition-transform duration-150 {denounceOpen ? 'rotate-180' : ''}" />
+                        </button>
+
+                        {#if denounceOpen}
+                            <button type="button" class="fixed inset-0 z-10 cursor-default" tabindex="-1"
+                                aria-hidden="true" onclick={() => (denounceOpen = false)}></button>
+                            <div class="absolute z-20 mt-1 w-full rounded-lg border border-card-edge bg-card shadow-lg shadow-darken overflow-hidden">
+                                <div class="flex items-center gap-2 px-3 py-2 border-b border-card-edge">
+                                    <Search class="h-3.5 w-3.5 text-font-dimest shrink-0" />
+                                    <!-- svelte-ignore a11y_autofocus -->
+                                    <input bind:value={denounceSearch} autofocus placeholder="Search players…"
+                                        class="w-full bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
+                                </div>
+                                <div class="max-h-60 overflow-y-auto py-1">
+                                    {#each filteredPlayers as p}
+                                        <button type="button"
+                                            onclick={() => { denounceTarget = String(p.id); denounceOpen = false; denounceSearch = ''; }}
+                                            class="w-full text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
+                                                   {String(p.id) === denounceTarget
+                                                     ? 'bg-primary/15 text-primary'
+                                                     : 'text-font-dim hover:bg-select hover:text-font-clear'}">
+                                            {p.name}
+                                        </button>
+                                    {:else}
+                                        <div class="px-3 py-2 text-sm text-font-dimest italic">No players found.</div>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+
                 <button type="submit" disabled={!denounceTarget}
                     class="shrink-0 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150
                            {denounceTarget
