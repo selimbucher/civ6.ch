@@ -39,12 +39,12 @@
       {#if player}
         <div class="flex flex-col items-center gap-2" style="width: 140px">
           <!-- Portrait -->
-          <div class="rounded-full overflow-visible shrink-0 flex items-center justify-center bg-card-edge"
+          <div class="rounded-full overflow-visible shrink-0 flex items-center justify-center bg-card-2"
                style="width:{portraitPx}px; height:{portraitPx}px;
                       box-shadow: 0 0 0 2px var(--color-card), 0 0 0 3.5px color-mix(in srgb, {color} 50%, transparent)">
             <Avatar id={player.id} name={player.name} avatar={player.avatar}
-                    wrapClass="w-full h-full rounded-full bg-card-edge"
-                    letterClass="text-font-dimest text-xl font-bold font-fancy select-none" />
+                    wrapClass="w-full h-full rounded-full bg-card-2"
+                    letterClass="text-primary text-3xl font-bold font-fancy select-none" />
           </div>
           <!-- Name + rating -->
           <div class="text-center">
@@ -96,8 +96,8 @@
             <td class="px-3 py-3">
               <div class="flex items-center gap-3">
                 <Avatar id={player.id} name={player.name} avatar={player.avatar}
-                        wrapClass="h-8 w-8 rounded-full bg-card-edge shrink-0"
-                        letterClass="text-font-dimest text-[10px] font-bold font-fancy select-none" />
+                        wrapClass="h-8 w-8 rounded-full bg-card-2 border border-card-edge shrink-0"
+                        letterClass="text-primary text-[10px] font-bold font-fancy select-none" />
                 <div class="flex flex-col gap-1">
                   <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">
                     <span class="tracking-wide text-font-dim group-hover:text-font-clear transition-colors duration-150">
@@ -173,8 +173,8 @@
             <td class="px-3 py-3">
               <div class="flex items-center gap-3">
                 <Avatar id={player.id} name={player.name} avatar={player.avatar}
-                        wrapClass="h-8 w-8 rounded-full bg-card-edge shrink-0"
-                        letterClass="text-font-dimest text-[10px] font-bold font-fancy select-none" />
+                        wrapClass="h-8 w-8 rounded-full bg-card-2 border border-card-edge shrink-0"
+                        letterClass="text-primary text-[10px] font-bold font-fancy select-none" />
                 <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">
                   <span class="racking-wide text-font-dim group-hover:text-font-clear transition-colors duration-150">
                     {player.name}
