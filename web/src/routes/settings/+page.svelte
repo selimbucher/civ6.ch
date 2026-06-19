@@ -56,8 +56,8 @@
 
 {#snippet head(Icon: any, title: string)}
     <div class="flex items-center gap-2">
-        <Icon class="h-5 w-5 text-primary" strokeWidth={1.75} />
-        <span class="font-fancy text-lg font-semibold text-font-clear">{title}</span>
+        <Icon class="h-5 w-5 text-primary shrink-0" strokeWidth={1.75} />
+        <span class="font-fancy text-lg font-semibold text-font-clear leading-none">{title}</span>
     </div>
 {/snippet}
 
@@ -305,7 +305,7 @@
             <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2">
                     {@render steamIcon('h-5 w-5 text-primary')}
-                    <span class="font-fancy text-lg font-semibold text-font-clear">Steam Account</span>
+                    <span class="font-fancy text-lg font-semibold text-font-clear leading-none">Steam Account</span>
                 </div>
                 <p class="text-sm text-font-dimer leading-relaxed">
                     Link your Steam account so uploaded games recognise you automatically.
@@ -361,7 +361,7 @@
         <div class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-2">
                 <Flame class="h-5 w-5 text-font-bad" strokeWidth={1.75} />
-                <span class="font-fancy text-lg font-semibold text-font-clear">Danger Zone</span>
+                <span class="font-fancy text-lg font-semibold text-font-clear leading-none">Danger Zone</span>
             </div>
 
             {#if form?.peaceOk}{@render banner(true, `Sued for peace — withdrew ${form.peaceCount} denouncement${form.peaceCount === 1 ? '' : 's'}.`)}{/if}

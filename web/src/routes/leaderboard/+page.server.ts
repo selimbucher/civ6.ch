@@ -2,8 +2,15 @@ import postgres from 'postgres';
 
 const sql = postgres();
 
-export async function load({ url }) {
+export async function load({ url, locals }) {
     const category = url.searchParams.get('category') ?? 'ffa';
+
+    // Players the current viewer has denounced (for the frowny badge).
+    let denouncedIds: number[] = [];
+    if (locals.user) {
+        const rows = await sql`SELECT denounced_id FROM denouncements WHERE denouncer_id = ${locals.user.id}`;
+        denouncedIds = rows.map((r: any) => r.denounced_id);
+    }
 
     const overall = await sql`
         SELECT
@@ -44,5 +51,5 @@ export async function load({ url }) {
         ORDER BY pr.rating DESC NULLS LAST
     `;
 
-    return { overall, categorical, category };
+    return { overall, categorical, category, denouncedIds };
 }

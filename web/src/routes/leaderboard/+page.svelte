@@ -11,6 +11,9 @@
   let { data } = $props();
   let active = $state(tabs.find(t => categoryMap[t] === data.category) ?? 'FFA');
 
+  const denouncedSet = $derived(new Set<number>(data.denouncedIds ?? []));
+  const winrate = (p: any) => (p.games > 0 ? Math.round(Number(p.wins) / Number(p.games) * 100) : 0);
+
   function switchTab(tab: string) {
     active = tab;
     goto(`?category=${categoryMap[tab]}`, { replaceState: true });
@@ -24,9 +27,9 @@
 
   // order: 2nd left, 1st center, 3rd right
   const PODIUM = [
-    { idx: 1, color: '#B0B8C8',              blockH: 56,  portraitPx: 64  },
-    { idx: 0, color: 'var(--color-primary)', blockH: 88,  portraitPx: 80  },
-    { idx: 2, color: '#CD7F32',              blockH: 36,  portraitPx: 52  },
+    { idx: 1, color: '#B0B8C8',              blockH: 56,  portraitPx: 64, letterCls: 'text-2xl' },
+    { idx: 0, color: 'var(--color-primary)', blockH: 88,  portraitPx: 80, letterCls: 'text-3xl' },
+    { idx: 2, color: '#CD7F32',              blockH: 36,  portraitPx: 52, letterCls: 'text-xl'  },
   ];
 </script>
 
@@ -34,25 +37,36 @@
 
   <!-- ── Podium ───────────────────────────────────────────────────────── -->
   <div class="flex items-end justify-center gap-6">
-    {#each PODIUM as { idx, color, blockH, portraitPx }}
+    {#each PODIUM as { idx, color, blockH, portraitPx, letterCls }}
       {@const player = data.overall[idx]}
       {#if player}
+        {@const wr = winrate(player)}
         <div class="flex flex-col items-center gap-2" style="width: 140px">
           <!-- Portrait -->
           <div class="rounded-full overflow-visible shrink-0 flex items-center justify-center bg-card-2"
                style="width:{portraitPx}px; height:{portraitPx}px;
                       box-shadow: 0 0 0 2px var(--color-card), 0 0 0 3.5px color-mix(in srgb, {color} 50%, transparent)">
             <Avatar id={player.id} name={player.name} avatar={player.avatar}
+                    denounced={denouncedSet.has(player.id)}
                     wrapClass="w-full h-full rounded-full bg-card-2"
-                    letterClass="text-primary text-3xl font-bold font-fancy select-none" />
+                    letterClass="text-primary {letterCls} font-bold font-fancy select-none" />
           </div>
-          <!-- Name + rating -->
-          <div class="text-center">
+          <!-- Name + rating + winrate -->
+          <div class="text-center flex flex-col items-center">
             <a href="/profile/{player.id}"
                class="font-semibold text-font-dim hover:text-font-clear transition-colors duration-150 text-sm leading-tight">
               {player.name}
             </a>
             <div class="text-xs text-font-dimest tabular-nums">{Math.round(Number(player.rating))}</div>
+            {#if player.games > 0}
+              <div class="mt-1 flex items-center gap-1.5">
+                <div class="w-10 h-[3px] rounded-full bg-card-edge overflow-hidden">
+                  <div class="h-full rounded-full {wr >= 60 ? 'bg-font-good' : wr >= 40 ? 'bg-primary' : 'bg-font-bad'}"
+                       style="width:{wr}%"></div>
+                </div>
+                <span class="text-[10px] text-font-dimest tabular-nums">{wr}%</span>
+              </div>
+            {/if}
           </div>
           <!-- Step block -->
           <div class="w-full rounded-t-xl flex items-center justify-center"
@@ -82,20 +96,16 @@
         </tr>
       </thead>
       <tbody>
-        {#each data.overall as player, i}
+        {#each data.overall.slice(3) as player, i}
           {@const wr = player.games > 0 ? Math.round(Number(player.wins) / Number(player.games) * 100) : 0}
           <tr class="not-last:border-b border-card-edge odd:bg-zebra-2 transition-colors duration-100 group">
             <td class="text-center px-4 py-3">
-            {#if i > 0}
-              <span class="text-font-dimest text-sm flex justify-center items-center ml-3">{i + 1}</span>
-            {/if}
-            {#if i == 0}
-              <span class="text-sm flex justify-center items-center text-primary drop-shadow-sm drop-shadow-primary ml-3 font-medium">1</span>
-            {/if}
+              <span class="text-font-dimest text-sm flex justify-center items-center ml-3">{i + 4}</span>
             </td>
             <td class="px-3 py-3">
               <div class="flex items-center gap-3">
                 <Avatar id={player.id} name={player.name} avatar={player.avatar}
+                        denounced={denouncedSet.has(player.id)}
                         wrapClass="h-8 w-8 rounded-full bg-card-2 border border-card-edge shrink-0"
                         letterClass="text-primary text-[10px] font-bold font-fancy select-none" />
                 <div class="flex flex-col gap-1">
@@ -173,6 +183,7 @@
             <td class="px-3 py-3">
               <div class="flex items-center gap-3">
                 <Avatar id={player.id} name={player.name} avatar={player.avatar}
+                        denounced={denouncedSet.has(player.id)}
                         wrapClass="h-8 w-8 rounded-full bg-card-2 border border-card-edge shrink-0"
                         letterClass="text-primary text-[10px] font-bold font-fancy select-none" />
                 <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">

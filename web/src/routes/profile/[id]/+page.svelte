@@ -142,6 +142,7 @@
             <!-- Avatar -->
             <div class="shrink-0 relative">
                 <Avatar id={data.player.id} name={data.player.name} avatar={data.player.avatar}
+                    denounced={data.denounce?.iDenounced}
                     wrapClass="h-20 w-20 rounded-full border-2 border-card-edge bg-card-2"
                     letterClass="font-fancy text-3xl font-bold text-primary select-none" />
                 {#if overallRank === 1}
@@ -156,23 +157,12 @@
                 <h1 class="font-fancy text-4xl font-bold text-font-clear tracking-wide truncate flex items-center gap-2"
                     style="text-shadow: 1px 1px 0px var(--color-primary-shadow);">
                     {data.player.name}
-                    {#if data.denounce?.iDenounced}
-                        <Angry class="h-7 w-7 text-font-bad shrink-0" strokeWidth={2}
-                            aria-label="You have denounced this player" />
-                    {/if}
                 </h1>
-                {#if data.denounce?.iDenounced || data.denounce?.denouncedMe}
+                {#if data.denounce?.denouncedMe}
                     <div class="mt-1 flex flex-wrap gap-2 items-center text-xs">
-                        {#if data.denounce.iDenounced}
-                            <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-font-bad/10 text-font-bad border border-font-bad/25">
-                                <Angry class="h-3.5 w-3.5" /> You have denounced this player
-                            </span>
-                        {/if}
-                        {#if data.denounce.denouncedMe}
-                            <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-card-2 text-font-dimer border border-card-edge">
-                                <Angry class="h-3.5 w-3.5" /> Has denounced you
-                            </span>
-                        {/if}
+                        <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-card-2 text-font-dimer border border-card-edge">
+                            <Angry class="h-3.5 w-3.5" /> Has denounced you
+                        </span>
                     </div>
                 {/if}
                 <div class="mt-2 flex flex-wrap gap-3 items-center">

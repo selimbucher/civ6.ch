@@ -1,16 +1,21 @@
 <script lang="ts">
     // Renders a player's avatar: an uploaded image, a chosen leader portrait,
-    // or a letter fallback (first character of the name).
+    // or a letter fallback (first character of the name). Optionally overlays a
+    // "denounced" badge in the bottom-left corner.
+    import denouncedIcon from '$lib/assets/icons/relationships/denounced.png';
+
     let {
         id,
         name,
         avatar = null,
+        denounced = false,
         wrapClass = '',
         letterClass = ''
     }: {
         id: number;
         name: string;
         avatar?: string | null;
+        denounced?: boolean;
         wrapClass?: string;
         letterClass?: string;
     } = $props();
@@ -48,10 +53,16 @@
     );
 </script>
 
-<div class="overflow-hidden flex items-center justify-center {finalWrapClass}">
+<!-- relative (not overflow-hidden) so the denounced badge can sit in the corner;
+     the image clips itself to the circle via rounded-[inherit]. -->
+<div class="relative flex items-center justify-center {finalWrapClass}">
     {#if src}
-        <img {src} alt="" class="h-full w-full object-cover" />
+        <img {src} alt="" class="h-full w-full rounded-[inherit] object-cover" />
     {:else}
-        <span class={letterClass}>{name?.charAt(0).toUpperCase() ?? '?'}</span>
+        <span class="leading-none {letterClass}">{name?.charAt(0).toUpperCase() ?? '?'}</span>
+    {/if}
+    {#if denounced}
+        <img src={denouncedIcon} alt="" title="Denounced"
+            class="absolute bottom-0 left-0 w-[45%] h-[45%] object-contain pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]" />
     {/if}
 </div>
