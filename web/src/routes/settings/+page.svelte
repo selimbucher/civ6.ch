@@ -1,7 +1,7 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { page } from '$app/stores';
-    import { Link2, Unlink, ExternalLink, ShieldCheck } from '@lucide/svelte';
+    import { Link2, Unlink, ExternalLink, ShieldCheck, Link } from '@lucide/svelte';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -30,7 +30,7 @@
             <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2">
                     {@render steamIcon('h-5 w-5 text-primary')}
-                    <span class="font-fancy text-lg font-semibold text-font-clear">Steam Accounts</span>
+                    <span class="font-fancy text-lg font-semibold text-font-clear">Steam Account</span>
                 </div>
                 <p class="text-sm text-font-dimer leading-relaxed">
                     Link your Steam account so uploaded games recognise you automatically.
@@ -68,7 +68,7 @@
                     {/each}
                 </div>
             {:else}
-                <p class="text-sm text-font-dimest italic">No Steam account linked yet.</p>
+                <p class="text-sm text-font-dimest italic">No account linked yet.</p>
             {/if}
 
             <!-- Link button -->
@@ -76,8 +76,8 @@
                 <a href="/auth/steam"
                    class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold
                           bg-gradient-primary text-black hover:brightness-125 transition-all duration-150">
-                    <Link2 class="h-4 w-4" strokeWidth={2} />
-                    {steamAccounts.length > 0 ? 'Link another Steam account' : 'Link Steam account'}
+                    <Link class="h-4 w-4" strokeWidth={2} />
+                    {steamAccounts.length > 0 ? 'Link another account' : 'Link Steam account'}
                 </a>
             </div>
         </div>
@@ -92,5 +92,5 @@
             Could not verify your Steam account. Please try again.
         </div>
     {/if}
-    
+
 </div>
