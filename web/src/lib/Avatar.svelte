@@ -63,6 +63,6 @@
     {/if}
     {#if denounced}
         <img src={denouncedIcon} alt="" title="Denounced"
-            class="absolute bottom-0 left-0 w-[45%] h-[45%] object-contain pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]" />
+            class="absolute -bottom-[12%] -left-[12%] w-[48%] h-[48%] object-contain pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]" />
     {/if}
 </div>

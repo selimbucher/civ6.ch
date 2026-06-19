@@ -82,7 +82,7 @@
   </div>
 
   <!-- ── Tables ───────────────────────────────────────────────────────── -->
-  <div class="flex flex-col md:flex-row gap-4 flex-1">
+  <div class="flex flex-col md:flex-row md:items-start gap-4 flex-1">
 
   <!-- ── Overall (always visible, left) ──────────────────────────────── -->
   <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
