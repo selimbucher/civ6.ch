@@ -175,8 +175,8 @@
     </div>
 
     <!-- Diplomacy (denounce / forgive) -->
-    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
-        <div class="h-[3px] bg-gradient-primary"></div>
+    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken">
+        <div class="h-[3px] bg-gradient-primary rounded-t-[15px]"></div>
         <div class="p-6 flex flex-col gap-5">
             <div class="flex flex-col gap-1">
                 {@render head(Megaphone, 'Diplomacy')}
