@@ -42,7 +42,7 @@
           <div class="rounded-full overflow-visible shrink-0 flex items-center justify-center bg-card-edge"
                style="width:{portraitPx}px; height:{portraitPx}px;
                       box-shadow: 0 0 0 2px var(--color-card), 0 0 0 3.5px color-mix(in srgb, {color} 50%, transparent)">
-            <Avatar id={player.id} name={player.name} avatar={player.avatar || (player.top_leader ? `leader:${player.top_leader}` : null)}
+            <Avatar id={player.id} name={player.name} avatar={player.avatar}
                     wrapClass="w-full h-full rounded-full bg-card-edge"
                     letterClass="text-font-dimest text-xl font-bold font-fancy select-none" />
           </div>
@@ -94,17 +94,22 @@
             {/if}
             </td>
             <td class="px-3 py-3">
-              <div class="flex flex-col gap-1">
-                <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">
-                  <span class="tracking-wide text-font-dim group-hover:text-font-clear transition-colors duration-150">
-                    {player.name}
-                  </span>
-                  {#if Number(player.streak) > 1}
-                    <span class="flex items-center gap-0.5 text-xs font-semibold text-font-good bg-font-good/10 border border-font-good/20 px-1.5 py-0.5 rounded-full">
-                      <Flame class="h-3 w-3" strokeWidth={2} />{player.streak}
+              <div class="flex items-center gap-3">
+                <Avatar id={player.id} name={player.name} avatar={player.avatar}
+                        wrapClass="h-8 w-8 rounded-full bg-card-edge shrink-0"
+                        letterClass="text-font-dimest text-[10px] font-bold font-fancy select-none" />
+                <div class="flex flex-col gap-1">
+                  <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">
+                    <span class="tracking-wide text-font-dim group-hover:text-font-clear transition-colors duration-150">
+                      {player.name}
                     </span>
-                  {/if}
-                </a>
+                    {#if Number(player.streak) > 1}
+                      <span class="flex items-center gap-0.5 text-xs font-semibold text-font-good bg-font-good/10 border border-font-good/20 px-1.5 py-0.5 rounded-full">
+                        <Flame class="h-3 w-3" strokeWidth={2} />{player.streak}
+                      </span>
+                    {/if}
+                  </a>
+                </div>
               </div>
             </td>
             <td class="text-right px-3 py-3 flex flex-col">
@@ -166,16 +171,21 @@
               <span class="text-font-dimer text-sm ml-3">{i + 1}</span>
             </td>
             <td class="px-3 py-3">
-              <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">
-                <span class="racking-wide text-font-dim group-hover:text-font-clear transition-colors duration-150">
-                  {player.name}
-                </span>
-                {#if Number(player.streak) > 1}
-                  <span class="flex items-center gap-0.5 text-xs font-semibold text-font-good bg-font-good/10 border border-font-good/20 px-1.5 py-0.5 rounded-full">
-                    <Flame class="h-3 w-3" strokeWidth={2} />{player.streak}
+              <div class="flex items-center gap-3">
+                <Avatar id={player.id} name={player.name} avatar={player.avatar}
+                        wrapClass="h-8 w-8 rounded-full bg-card-edge shrink-0"
+                        letterClass="text-font-dimest text-[10px] font-bold font-fancy select-none" />
+                <a href="/profile/{player.id}" class="flex items-center gap-2 w-fit">
+                  <span class="racking-wide text-font-dim group-hover:text-font-clear transition-colors duration-150">
+                    {player.name}
                   </span>
-                {/if}
-              </a>
+                  {#if Number(player.streak) > 1}
+                    <span class="flex items-center gap-0.5 text-xs font-semibold text-font-good bg-font-good/10 border border-font-good/20 px-1.5 py-0.5 rounded-full">
+                      <Flame class="h-3 w-3" strokeWidth={2} />{player.streak}
+                    </span>
+                  {/if}
+                </a>
+              </div>
             </td>
             <td class="text-right px-3 py-3">
               <span class="text-font-clear font-semibold tabular-nums">{Math.round(Number(player.rating))}</span>
