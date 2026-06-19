@@ -7,7 +7,7 @@
     import culturev from '$lib/assets/icons/vcondition/culture.png';
     import scorev from '$lib/assets/icons/vcondition/score.png';
     import capitulationv from '$lib/assets/icons/vcondition/capitulation.png';
-    import { Trophy, Flame, Star, Clock, ChevronRight, Medal } from '@lucide/svelte';
+    import { Trophy, Flame, Star, Clock, ChevronRight, Medal, Angry } from '@lucide/svelte';
     import RatingChart from '$lib/RatingChart.svelte';
 
     const leaderAssets = import.meta.glob<{ default: string }>(
@@ -154,10 +154,28 @@
 
             <!-- Name + meta -->
             <div class="flex-1 min-w-0">
-                <h1 class="font-fancy text-4xl font-bold text-font-clear tracking-wide truncate"
+                <h1 class="font-fancy text-4xl font-bold text-font-clear tracking-wide truncate flex items-center gap-2"
                     style="text-shadow: 1px 1px 0px var(--color-primary-shadow);">
                     {data.player.name}
+                    {#if data.denounce?.iDenounced}
+                        <Angry class="h-7 w-7 text-font-bad shrink-0" strokeWidth={2}
+                            aria-label="You have denounced this player" />
+                    {/if}
                 </h1>
+                {#if data.denounce?.iDenounced || data.denounce?.denouncedMe}
+                    <div class="mt-1 flex flex-wrap gap-2 items-center text-xs">
+                        {#if data.denounce.iDenounced}
+                            <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-font-bad/10 text-font-bad border border-font-bad/25">
+                                <Angry class="h-3.5 w-3.5" /> You have denounced this player
+                            </span>
+                        {/if}
+                        {#if data.denounce.denouncedMe}
+                            <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-card-2 text-font-dimer border border-card-edge">
+                                <Angry class="h-3.5 w-3.5" /> Has denounced you
+                            </span>
+                        {/if}
+                    </div>
+                {/if}
                 <div class="mt-2 flex flex-wrap gap-3 items-center">
                     {#if overallRank}
                         <span class="flex items-center gap-1 text-sm font-semibold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">

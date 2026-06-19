@@ -1,51 +1,36 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { page } from '$app/stores';
-    import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
     import {
         Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
-        Sparkles, PartyPopper, WandSparkles, Rows3, EyeOff, RotateCcw
+        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame
     } from '@lucide/svelte';
     import type { PageData } from './$types';
 
     let { data, form }: { data: PageData; form: any } = $props();
-    const { steamAccounts } = $derived(data);
+    const { steamAccounts, denounced, players } = $derived(data);
 
     const steamStatus = $derived($page.url.searchParams.get('steam'));
 
-    // Uncontrolled inputs: value derives from server data, so a successful save
-    // (which reloads data + resets the form) shows the saved values rather than
-    // going blank. The name is stored as "First Last".
+    // Uncontrolled profile inputs (value from server data) so saved values show
+    // after submit. Name is stored as "First Last".
     const fullName  = $derived((data.profile?.name ?? '') as string);
     const firstName = $derived(fullName.split(' ')[0] ?? '');
     const lastName  = $derived(fullName.split(' ').slice(1).join(' '));
     const email     = $derived((data.profile?.email ?? '') as string);
 
-    function fmtDate(d: string | Date) {
-        return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    }
-
-    // ── Cosmetic, site-side extras (persisted locally) ─────────────────────────
-    type Toggle = { id: string; icon: any; label: string; desc: string };
-    const extras: Toggle[] = [
-        { id: 'confetti', icon: PartyPopper, label: 'Confetti on your victories', desc: 'Rain confetti on match pages you won. You earned it.' },
-        { id: 'dramatic', icon: WandSparkles,       label: 'Dramatic rating reveals',     desc: 'Animate rating changes with entirely unnecessary flourish.' },
-        { id: 'compact',  icon: Rows3,       label: 'Compact match feed',          desc: 'Tighter spacing in the matches list for the data-hungry.' },
-        { id: 'amnesia',  icon: EyeOff,      label: 'Selective memory',            desc: 'Dim your defeats so your profile is all glorious wins.' }
+    const notifyMeta = [
+        { key: 'new_game',    label: 'A game you played is logged', desc: 'A toga-clad courier sprints to your inbox when a match you were in is uploaded.' },
+        { key: 'denounced',   label: 'A rival denounces you',       desc: 'Hear the bad news first, by carrier pigeon (email).' },
+        { key: 'weekly',      label: 'The weekly herald',           desc: 'A Sunday scroll summarising the standings and fresh grudges.' },
+        { key: 'achievement', label: 'You unlock an achievement',   desc: 'Silent trumpets, delivered straight to your email.' }
     ];
-    const extraDefaults: Record<string, boolean> = { confetti: true, dramatic: false, compact: false, amnesia: false };
+    let notif = $state<Record<string, boolean>>({});
+    $effect(() => { notif = { ...(data.notify ?? {}) }; });
 
-    let prefs = $state<Record<string, boolean>>({ ...extraDefaults });
+    let denounceTarget = $state('');
     let toast = $state<string | null>(null);
-
-    onMount(() => {
-        try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem('civ6_prefs') ?? '{}') }; }
-        catch { /* keep defaults */ }
-    });
-    $effect(() => { if (browser) localStorage.setItem('civ6_prefs', JSON.stringify(prefs)); });
-
-    function flash(msg: string) { toast = msg; setTimeout(() => (toast = null), 2400); }
+    function flash(msg: string) { toast = msg; setTimeout(() => (toast = null), 2600); }
 </script>
 
 {#snippet steamIcon(cls: string)}
@@ -54,13 +39,10 @@
     </svg>
 {/snippet}
 
-{#snippet sectionHead(Icon: any, title: string, subtitle: string)}
-    <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-2">
-            <Icon class="h-5 w-5 text-primary" strokeWidth={1.75} />
-            <span class="font-fancy text-lg font-semibold text-font-clear">{title}</span>
-        </div>
-        <p class="text-sm text-font-dimer leading-relaxed">{subtitle}</p>
+{#snippet head(Icon: any, title: string)}
+    <div class="flex items-center gap-2">
+        <Icon class="h-5 w-5 text-primary" strokeWidth={1.75} />
+        <span class="font-fancy text-lg font-semibold text-font-clear">{title}</span>
     </div>
 {/snippet}
 
@@ -81,10 +63,8 @@
     </label>
 {/snippet}
 
-{#snippet toggle(id: string)}
-    {@const on = prefs[id] === true}
-    <button type="button" role="switch" aria-checked={on} aria-label="toggle"
-        onclick={() => (prefs[id] = !on)}
+{#snippet switchBtn(on: boolean, onToggle: () => void)}
+    <button type="button" role="switch" aria-checked={on} aria-label="toggle" onclick={onToggle}
         class="relative h-5.5 w-10 rounded-full transition-colors duration-150 shrink-0 cursor-pointer
                {on ? 'bg-primary' : 'bg-card-edge-2'}">
         <span class="absolute top-0.5 left-0.5 h-4.5 w-4.5 rounded-full bg-font-clear shadow-sm transition-transform duration-150
@@ -92,19 +72,23 @@
     </button>
 {/snippet}
 
-<div class="mx-auto w-full max-w-3xl px-3 md:px-6 mb-12 flex flex-col gap-4">
+{#snippet primaryBtn(label: string)}
+    <button type="submit"
+        class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
+               bg-gradient-primary text-black hover:brightness-125 transition-all duration-150">
+        {label}
+    </button>
+{/snippet}
 
-    <div class="flex flex-col gap-1 mt-2">
-        <h1 class="font-fancy text-2xl font-semibold text-font-clear">Preferences</h1>
-        <p class="text-sm text-font-dimer">Manage your account and how you appear on civ6.ch.</p>
-    </div>
+<h1 class="font-fancy text-2xl font-semibold text-font-clear mx-auto w-full max-w-6xl px-4 mt-2 mb-4">Preferences</h1>
+
+<div class="mx-auto w-full max-w-6xl px-4 mb-12 columns-1 lg:columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid">
 
     <!-- Profile -->
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <form method="POST" action="?/profile" use:enhance class="p-6 flex flex-col gap-5">
-            {@render sectionHead(User, 'Profile', 'Your name as shown across civ6.ch, and your contact email.')}
-
+            {@render head(User, 'Profile')}
             {#if form?.profileOk}{@render banner(true, 'Profile updated.')}{/if}
             {#if form?.profileError}{@render banner(false, form.profileError)}{/if}
 
@@ -122,14 +106,7 @@
                     <span class="text-xs text-font-dimest">Required to confirm changes to your account.</span>
                 </div>
             </div>
-
-            <div>
-                <button type="submit"
-                    class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-                           bg-gradient-primary text-black hover:brightness-125 transition-all duration-150">
-                    Save changes
-                </button>
-            </div>
+            <div>{@render primaryBtn('Save changes')}</div>
         </form>
     </div>
 
@@ -137,8 +114,7 @@
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <div class="p-6 flex flex-col gap-5">
-            {@render sectionHead(KeyRound, 'Security', 'Change your password and manage active sessions.')}
-
+            {@render head(KeyRound, 'Security')}
             {#if form?.passwordOk}{@render banner(true, 'Password changed.')}{/if}
             {#if form?.passwordError}{@render banner(false, form.passwordError)}{/if}
             {#if form?.signedOut}{@render banner(true, 'Signed out of all other devices.')}{/if}
@@ -147,15 +123,9 @@
                 {@render field('Current password', 'current', 'password', '', '')}
                 <div class="flex flex-col sm:flex-row gap-4">
                     {@render field('New password', 'new', 'password', '', '')}
-                    {@render field('Confirm new password', 'confirm', 'password', '', '')}
+                    {@render field('Confirm', 'confirm', 'password', '', '')}
                 </div>
-                <div>
-                    <button type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-                               bg-gradient-primary text-black hover:brightness-125 transition-all duration-150">
-                        Change password
-                    </button>
-                </div>
+                <div>{@render primaryBtn('Change password')}</div>
             </form>
 
             <div class="border-t border-card-edge pt-4 flex items-center gap-4">
@@ -174,11 +144,95 @@
         </div>
     </div>
 
+    <!-- Town Crier (notifications) -->
+    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
+        <div class="h-[3px] bg-gradient-primary"></div>
+        <form method="POST" action="?/notifications" use:enhance class="p-6 flex flex-col gap-5">
+            <div class="flex flex-col gap-1">
+                {@render head(Bell, 'Town Crier')}
+                <p class="text-sm text-font-dimer">Choose when a messenger should bring word to your inbox.</p>
+            </div>
+            {#if form?.notifyOk}{@render banner(true, 'Notification preferences saved.')}{/if}
+
+            <div class="flex flex-col divide-y divide-card-edge">
+                {#each notifyMeta as n}
+                    <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                        <input type="hidden" name="notify_{n.key}" value={notif[n.key] ? 'on' : ''} />
+                        <div class="flex flex-col leading-tight flex-1 min-w-0">
+                            <span class="text-sm text-font-clear">{n.label}</span>
+                            <span class="text-xs text-font-dimest mt-0.5">{n.desc}</span>
+                        </div>
+                        {@render switchBtn(!!notif[n.key], () => (notif[n.key] = !notif[n.key]))}
+                    </div>
+                {/each}
+            </div>
+            <div>{@render primaryBtn('Save preferences')}</div>
+        </form>
+    </div>
+
+    <!-- Diplomacy (denounce / forgive) -->
+    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
+        <div class="h-[3px] bg-gradient-primary"></div>
+        <div class="p-6 flex flex-col gap-5">
+            <div class="flex flex-col gap-1">
+                {@render head(Megaphone, 'Diplomacy')}
+                <p class="text-sm text-font-dimer">
+                    Publicly denounce a rival. They'll wear a frowny face on their profile — and hear about it.
+                </p>
+            </div>
+            {#if form?.denounceOk}{@render banner(true, 'Denounced. The realm has been notified.')}{/if}
+            {#if form?.forgiveOk}{@render banner(true, 'Forgiven. How magnanimous.')}{/if}
+            {#if form?.diploError}{@render banner(false, form.diploError)}{/if}
+
+            <form method="POST" action="?/denounce" use:enhance class="flex items-end gap-2">
+                <label class="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Denounce a player</span>
+                    <select name="player_id" bind:value={denounceTarget}
+                        class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-dim
+                               outline-none focus:border-primary/40 cursor-pointer">
+                        <option value="" disabled>Choose a rival…</option>
+                        {#each players as p}
+                            <option value={String(p.id)}>{p.name}</option>
+                        {/each}
+                    </select>
+                </label>
+                <button type="submit" disabled={!denounceTarget}
+                    class="shrink-0 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150
+                           {denounceTarget
+                             ? 'bg-font-bad/15 text-font-bad border border-font-bad/30 hover:bg-font-bad/25 cursor-pointer'
+                             : 'border border-card-edge text-font-dimest cursor-not-allowed opacity-50'}">
+                    <Angry class="h-4 w-4" strokeWidth={1.75} /> Denounce
+                </button>
+            </form>
+
+            {#if denounced.length > 0}
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs font-fancy tracking-wide uppercase text-font-dimest">Currently denounced</span>
+                    {#each denounced as d}
+                        <div class="flex items-center gap-3 rounded-xl border border-card-edge bg-card-2 px-4 py-2.5">
+                            <Angry class="h-4.5 w-4.5 text-font-bad shrink-0" strokeWidth={1.75} />
+                            <a href="/profile/{d.id}" class="text-sm text-font-clear hover:text-primary transition-colors flex-1 min-w-0 truncate">{d.name}</a>
+                            <form method="POST" action="?/forgive" use:enhance class="shrink-0">
+                                <input type="hidden" name="player_id" value={d.id} />
+                                <button type="submit"
+                                    class="flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-xs text-font-dimer
+                                           hover:border-font-good/40 hover:text-font-good transition-colors duration-150 cursor-pointer">
+                                    <HeartHandshake class="h-3.5 w-3.5" strokeWidth={1.5} /> Forgive
+                                </button>
+                            </form>
+                        </div>
+                    {/each}
+                </div>
+            {:else}
+                <p class="text-sm text-font-dimest italic">You hold no active grudges. Suspicious.</p>
+            {/if}
+        </div>
+    </div>
+
     <!-- Steam account -->
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <div class="p-6 flex flex-col gap-5">
-
             <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2">
                     {@render steamIcon('h-5 w-5 text-primary')}
@@ -188,7 +242,6 @@
                     Link your Steam account so uploaded games recognise you automatically.
                 </p>
             </div>
-
             {#if steamStatus === 'linked'}{@render banner(true, 'Steam account linked.')}{/if}
             {#if steamStatus === 'error'}{@render banner(false, 'Could not verify your Steam account. Please try again.')}{/if}
 
@@ -200,16 +253,13 @@
                                 <ShieldCheck class="h-4.5 w-4.5 text-primary" strokeWidth={1.75} />
                             </div>
                             <div class="flex flex-col leading-tight min-w-0 flex-1">
-                                <span class="text-sm text-font-clear font-medium truncate">
-                                    {acc.persona ?? 'Steam account'}
-                                </span>
+                                <span class="text-sm text-font-clear font-medium truncate">{acc.persona ?? 'Steam account'}</span>
                                 <a href="https://steamcommunity.com/profiles/{acc.steam_id}"
                                    target="_blank" rel="noopener"
                                    class="text-xs text-font-dimest hover:text-primary transition-colors duration-150 flex items-center gap-1 w-fit">
                                     {acc.steam_id}<ExternalLink class="h-3 w-3" />
                                 </a>
                             </div>
-                            <span class="text-xs text-font-dimest hidden sm:block">linked {fmtDate(acc.linked_at)}</span>
                             <form method="POST" action="?/unlink" use:enhance class="shrink-0">
                                 <input type="hidden" name="steam_id" value={acc.steam_id} />
                                 <button type="submit"
@@ -236,27 +286,48 @@
         </div>
     </div>
 
-    <!-- Extras (cosmetic) -->
-    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
-        <div class="h-[3px] bg-gradient-primary"></div>
-        <div class="p-6 flex flex-col gap-5">
-            {@render sectionHead(Sparkles, 'Extras', 'Purely cosmetic. Saved to this device, harmless to your rating.')}
-            <div class="flex flex-col divide-y divide-card-edge">
-                {#each extras as item}
-                    <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                        <item.icon class="h-4.5 w-4.5 text-font-dimer shrink-0" strokeWidth={1.5} />
-                        <div class="flex flex-col leading-tight flex-1 min-w-0">
-                            <span class="text-sm text-font-clear">{item.label}</span>
-                            <span class="text-xs text-font-dimest mt-0.5">{item.desc}</span>
-                        </div>
-                        {@render toggle(item.id)}
-                    </div>
-                {/each}
+    <!-- Danger Zone -->
+    <div class="rounded-2xl border border-font-bad/30 bg-card shadow-md shadow-darken overflow-hidden">
+        <div class="h-[3px] bg-font-bad/70"></div>
+        <div class="p-6 flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+                <Flame class="h-5 w-5 text-font-bad" strokeWidth={1.75} />
+                <span class="font-fancy text-lg font-semibold text-font-clear">Danger Zone</span>
             </div>
-            <div class="flex justify-end">
-                <button type="button" onclick={() => { prefs = { ...extraDefaults }; flash('Extras reset to defaults.'); }}
-                    class="flex items-center gap-1.5 text-xs text-font-dimest hover:text-font-dim transition-colors duration-150 cursor-pointer">
-                    <RotateCcw class="h-3.5 w-3.5" /> Reset extras
+
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col leading-tight flex-1 min-w-0">
+                    <span class="text-sm text-font-clear">Sue for peace with all rivals</span>
+                    <span class="text-xs text-font-dimest mt-0.5">Lay down arms across the realm. Peace is, of course, temporary.</span>
+                </div>
+                <button type="button" onclick={() => flash('☮ A fragile peace settles over the land.')}
+                    class="shrink-0 flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
+                           hover:border-primary/40 hover:text-primary transition-colors duration-150 cursor-pointer">
+                    <Scroll class="h-3.5 w-3.5" strokeWidth={1.5} /> Sue for peace
+                </button>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col leading-tight flex-1 min-w-0">
+                    <span class="text-sm text-font-clear">Raze the archives</span>
+                    <span class="text-xs text-font-dimest mt-0.5">Burn every match record to ash and start anew.</span>
+                </div>
+                <button type="button" onclick={() => flash('The archives are, regrettably, fireproof.')}
+                    class="shrink-0 flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
+                           hover:border-primary/40 hover:text-primary transition-colors duration-150 cursor-pointer">
+                    <Flame class="h-3.5 w-3.5" strokeWidth={1.5} /> Raze
+                </button>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col leading-tight flex-1 min-w-0">
+                    <span class="text-sm text-font-bad font-medium">Abdicate the throne</span>
+                    <span class="text-xs text-font-dimest mt-0.5">Dissolve your dynasty and forfeit all earthly glory.</span>
+                </div>
+                <button type="button" onclick={() => flash('A successor was found within the hour. Long live the monarch.')}
+                    class="shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold
+                           bg-font-bad/15 text-font-bad border border-font-bad/30 hover:bg-font-bad/25 transition-colors duration-150 cursor-pointer">
+                    <Crown class="h-3.5 w-3.5" strokeWidth={1.75} /> Abdicate
                 </button>
             </div>
         </div>

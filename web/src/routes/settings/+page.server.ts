@@ -6,28 +6,46 @@ import type { Actions, PageServerLoad } from './$types';
 
 const sql = postgres();
 
+// Notification preference keys persisted in users.settings.notify.
+const NOTIFY_KEYS = ['new_game', 'denounced', 'weekly', 'achievement'] as const;
+
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.user) redirect(303, '/login');
+    const me = locals.user.id;
 
     const [profile] = await sql`
-        SELECT u.username, u.email, p.name
+        SELECT u.username, u.email, u.settings, p.name
         FROM users u
         LEFT JOIN players p ON p.id = u.id
-        WHERE u.id = ${locals.user.id}
+        WHERE u.id = ${me}
     `;
 
     const steamAccounts = await sql`
         SELECT steam_id, persona, linked_at
         FROM player_steam_ids
-        WHERE player_id = ${locals.user.id}
+        WHERE player_id = ${me}
         ORDER BY linked_at DESC
     `;
 
-    return { profile, steamAccounts };
+    const denounced = await sql`
+        SELECT d.denounced_id AS id, p.name, d.created_at
+        FROM denouncements d
+        JOIN players p ON p.id = d.denounced_id
+        WHERE d.denouncer_id = ${me}
+        ORDER BY p.name
+    `;
+
+    const players = await sql`
+        SELECT id, name FROM players
+        WHERE active = true AND id <> ${me}
+        ORDER BY name
+    `;
+
+    return { profile, steamAccounts, denounced, players, notify: profile?.settings?.notify ?? {} };
 };
 
 export const actions: Actions = {
-    // ── Profile (display name + email) ─────────────────────────────────────────
+    // ── Profile (display name + email), confirmed by password ──────────────────
     profile: async ({ request, locals }) => {
         if (!locals.user) return fail(401, { error: 'Not logged in' });
         const data = await request.formData();
@@ -47,7 +65,6 @@ export const actions: Actions = {
         if (!password)
             return fail(400, { profileError: 'Enter your current password to save changes' });
 
-        // Profile changes require confirming the current password.
         const [user] = await sql`SELECT pw_hash FROM users WHERE id = ${locals.user.id}`;
         if (!user) return fail(404, { profileError: 'Account not found' });
         const isBcrypt = user.pw_hash.startsWith('$2y$') || user.pw_hash.startsWith('$2b$');
@@ -94,6 +111,46 @@ export const actions: Actions = {
         const newHash = await hash(next);
         await sql`UPDATE users SET pw_hash = ${newHash}, pw_attempts = 0 WHERE id = ${locals.user.id}`;
         return { passwordOk: true };
+    },
+
+    // ── Notification preferences (the Town Crier) ──────────────────────────────
+    notifications: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const data = await request.formData();
+        const notify: Record<string, boolean> = {};
+        for (const k of NOTIFY_KEYS) notify[k] = data.get(`notify_${k}`) === 'on';
+        await sql`
+            UPDATE users
+            SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{notify}', ${JSON.stringify(notify)}::jsonb)
+            WHERE id = ${locals.user.id}
+        `;
+        return { notifyOk: true };
+    },
+
+    // ── Diplomacy: denounce / forgive ──────────────────────────────────────────
+    denounce: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const data = await request.formData();
+        const target = parseInt(data.get('player_id') as string);
+        if (isNaN(target)) return fail(400, { diploError: 'Choose a player to denounce' });
+        if (target === locals.user.id) return fail(400, { diploError: 'You cannot denounce yourself. Probably.' });
+        await sql`
+            INSERT INTO denouncements (denouncer_id, denounced_id)
+            VALUES (${locals.user.id}, ${target})
+            ON CONFLICT DO NOTHING
+        `;
+        return { denounceOk: true };
+    },
+    forgive: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const data = await request.formData();
+        const target = parseInt(data.get('player_id') as string);
+        if (isNaN(target)) return fail(400, { diploError: 'Missing player' });
+        await sql`
+            DELETE FROM denouncements
+            WHERE denouncer_id = ${locals.user.id} AND denounced_id = ${target}
+        `;
+        return { forgiveOk: true };
     },
 
     // ── Sign out of all other devices ──────────────────────────────────────────

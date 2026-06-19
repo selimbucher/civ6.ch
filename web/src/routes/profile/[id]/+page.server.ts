@@ -4,7 +4,7 @@ import type { PageServerLoad } from './$types';
 
 const sql = postgres();
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
     const id = parseInt(params.id);
     if (isNaN(id)) error(400, 'Invalid player ID');
 
@@ -14,6 +14,20 @@ export const load: PageServerLoad = async ({ params }) => {
         WHERE id = ${id}
     `;
     if (!player) error(404, 'Player not found');
+
+    // Denounce relationship between the viewer and this player (Civ-style frowny).
+    const denounce = { iDenounced: false, denouncedMe: false };
+    if (locals.user && locals.user.id !== id) {
+        const rows = await sql`
+            SELECT denouncer_id, denounced_id FROM denouncements
+            WHERE (denouncer_id = ${locals.user.id} AND denounced_id = ${id})
+               OR (denouncer_id = ${id} AND denounced_id = ${locals.user.id})
+        `;
+        for (const r of rows) {
+            if (r.denouncer_id === locals.user.id) denounce.iDenounced = true;
+            else denounce.denouncedMe = true;
+        }
+    }
 
     const ratings = await sql`
         SELECT category, rating, rd, last_played
@@ -148,6 +162,7 @@ export const load: PageServerLoad = async ({ params }) => {
         recentGames,
         achievements,
         highestRating: highestRating[0],
-        personalStats: personalStats[0]
+        personalStats: personalStats[0],
+        denounce
     };
 };
