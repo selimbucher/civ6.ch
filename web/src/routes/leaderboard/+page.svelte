@@ -57,7 +57,7 @@
                class="font-semibold text-font-dim hover:text-font-clear transition-colors duration-150 text-sm leading-tight">
               {player.name}
             </a>
-            <div class="text-xs text-font-dimest tabular-nums">{Math.round(Number(player.rating))}</div>
+            <div class="mt-0.5 text-sm text-font-dimer font-medium tabular-nums">{Math.round(Number(player.rating))}</div>
             {#if player.games > 0}
               <div class="mt-1 flex items-center gap-1.5">
                 <div class="w-10 h-[3px] rounded-full bg-card-edge overflow-hidden">
