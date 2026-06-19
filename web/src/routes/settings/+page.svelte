@@ -29,8 +29,6 @@
     $effect(() => { notif = { ...(data.notify ?? {}) }; });
 
     let denounceTarget = $state('');
-    let toast = $state<string | null>(null);
-    function flash(msg: string) { toast = msg; setTimeout(() => (toast = null), 2600); }
 </script>
 
 {#snippet steamIcon(cls: string)}
@@ -295,48 +293,69 @@
                 <span class="font-fancy text-lg font-semibold text-font-clear">Danger Zone</span>
             </div>
 
+            {#if form?.peaceOk}{@render banner(true, `Sued for peace — withdrew ${form.peaceCount} denouncement${form.peaceCount === 1 ? '' : 's'}.`)}{/if}
+            {#if form?.steamSevered}{@render banner(true, `Severed ${form.steamCount} Steam link${form.steamCount === 1 ? '' : 's'}.`)}{/if}
+            {#if form?.activeToggled}{@render banner(true, form.active ? 'Welcome back — you are ranked once more.' : 'You have retired from the ladder.')}{/if}
+
+            <!-- Sue for peace: clears all your denouncements -->
             <div class="flex items-center gap-4">
                 <div class="flex flex-col leading-tight flex-1 min-w-0">
                     <span class="text-sm text-font-clear">Sue for peace with all rivals</span>
-                    <span class="text-xs text-font-dimest mt-0.5">Lay down arms across the realm. Peace is, of course, temporary.</span>
+                    <span class="text-xs text-font-dimest mt-0.5">Withdraw every denouncement you've issued. Grudges may, of course, be rekindled.</span>
                 </div>
-                <button type="button" onclick={() => flash('☮ A fragile peace settles over the land.')}
-                    class="shrink-0 flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
-                           hover:border-primary/40 hover:text-primary transition-colors duration-150 cursor-pointer">
-                    <Scroll class="h-3.5 w-3.5" strokeWidth={1.5} /> Sue for peace
-                </button>
+                <form method="POST" action="?/sue_for_peace" class="shrink-0"
+                    use:enhance={({ cancel }) => { if (!confirm('Withdraw all your denouncements?')) cancel(); }}>
+                    <button type="submit"
+                        class="flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
+                               hover:border-primary/40 hover:text-primary transition-colors duration-150 cursor-pointer">
+                        <Scroll class="h-3.5 w-3.5" strokeWidth={1.5} /> Sue for peace
+                    </button>
+                </form>
             </div>
 
+            <!-- Sever Steam ties: unlink all steam accounts -->
             <div class="flex items-center gap-4">
                 <div class="flex flex-col leading-tight flex-1 min-w-0">
-                    <span class="text-sm text-font-clear">Raze the archives</span>
-                    <span class="text-xs text-font-dimest mt-0.5">Burn every match record to ash and start anew.</span>
+                    <span class="text-sm text-font-clear">Sever your Steam allegiances</span>
+                    <span class="text-xs text-font-dimest mt-0.5">Unlink every Steam account. New uploads will no longer recognise you automatically.</span>
                 </div>
-                <button type="button" onclick={() => flash('The archives are, regrettably, fireproof.')}
-                    class="shrink-0 flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
-                           hover:border-primary/40 hover:text-primary transition-colors duration-150 cursor-pointer">
-                    <Flame class="h-3.5 w-3.5" strokeWidth={1.5} /> Raze
-                </button>
+                <form method="POST" action="?/sever_steam" class="shrink-0"
+                    use:enhance={({ cancel }) => { if (!confirm('Unlink all your Steam accounts?')) cancel(); }}>
+                    <button type="submit"
+                        class="flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
+                               hover:border-font-bad/40 hover:text-font-bad transition-colors duration-150 cursor-pointer">
+                        <Unlink class="h-3.5 w-3.5" strokeWidth={1.5} /> Sever ties
+                    </button>
+                </form>
             </div>
 
+            <!-- Abdicate / Reclaim: retire from or return to the ladder -->
             <div class="flex items-center gap-4">
                 <div class="flex flex-col leading-tight flex-1 min-w-0">
-                    <span class="text-sm text-font-bad font-medium">Abdicate the throne</span>
-                    <span class="text-xs text-font-dimest mt-0.5">Dissolve your dynasty and forfeit all earthly glory.</span>
+                    <span class="text-sm text-font-bad font-medium">
+                        {data.profile?.active ? 'Abdicate the throne' : 'Reclaim the throne'}
+                    </span>
+                    <span class="text-xs text-font-dimest mt-0.5">
+                        {data.profile?.active
+                            ? 'Retire from competition — you’ll be hidden from leaderboards and rankings until you return.'
+                            : 'You are currently retired and hidden from the leaderboards. Return to the rankings.'}
+                    </span>
                 </div>
-                <button type="button" onclick={() => flash('A successor was found within the hour. Long live the monarch.')}
-                    class="shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold
-                           bg-font-bad/15 text-font-bad border border-font-bad/30 hover:bg-font-bad/25 transition-colors duration-150 cursor-pointer">
-                    <Crown class="h-3.5 w-3.5" strokeWidth={1.75} /> Abdicate
-                </button>
+                <form method="POST" action="?/toggle_active" class="shrink-0"
+                    use:enhance={({ cancel }) => {
+                        const msg = data.profile?.active ? 'Retire from the ladder?' : 'Return to the ladder?';
+                        if (!confirm(msg)) cancel();
+                    }}>
+                    <button type="submit"
+                        class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors duration-150 cursor-pointer
+                               {data.profile?.active
+                                 ? 'bg-font-bad/15 text-font-bad border border-font-bad/30 hover:bg-font-bad/25'
+                                 : 'bg-gradient-primary text-black hover:brightness-125'}">
+                        <Crown class="h-3.5 w-3.5" strokeWidth={1.75} />
+                        {data.profile?.active ? 'Abdicate' : 'Reclaim'}
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
-
-{#if toast}
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl border border-card-edge bg-card px-4 py-2.5
-                text-sm text-font-clear shadow-lg shadow-darken">
-        {toast}
-    </div>
-{/if}

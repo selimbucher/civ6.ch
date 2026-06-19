@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     const me = locals.user.id;
 
     const [profile] = await sql`
-        SELECT u.username, u.email, u.settings, p.name
+        SELECT u.username, u.email, u.settings, p.name, p.active
         FROM users u
         LEFT JOIN players p ON p.id = u.id
         WHERE u.id = ${me}
@@ -151,6 +151,28 @@ export const actions: Actions = {
             WHERE denouncer_id = ${locals.user.id} AND denounced_id = ${target}
         `;
         return { forgiveOk: true };
+    },
+
+    // ── Danger zone: real, reversible actions ──────────────────────────────────
+    // Withdraw every denouncement you have issued.
+    sue_for_peace: async ({ locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const res = await sql`DELETE FROM denouncements WHERE denouncer_id = ${locals.user.id}`;
+        return { peaceOk: true, peaceCount: res.count };
+    },
+    // Unlink every Steam account.
+    sever_steam: async ({ locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const res = await sql`DELETE FROM player_steam_ids WHERE player_id = ${locals.user.id}`;
+        return { steamSevered: true, steamCount: res.count };
+    },
+    // Retire from / return to the competitive ladder (leaderboards + rankings).
+    toggle_active: async ({ locals }) => {
+        if (!locals.user) return fail(401, { error: 'Not logged in' });
+        const [row] = await sql`
+            UPDATE players SET active = NOT active WHERE id = ${locals.user.id} RETURNING active
+        `;
+        return { activeToggled: true, active: row?.active };
     },
 
     // ── Sign out of all other devices ──────────────────────────────────────────
