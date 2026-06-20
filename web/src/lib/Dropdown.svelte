@@ -54,9 +54,9 @@
                {open ? 'border-primary/40' : 'border-card-edge hover:border-card-edge-2'}">
         <span class="flex items-center gap-2 min-w-0">
             {#if selected?.img}
-                <img src={selected.img} alt="" class="h-5 w-5 rounded-full object-cover shrink-0" />
+                <img src={selected.img} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
             {:else if selected?.fallback}
-                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold font-fancy text-primary select-none shrink-0">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-card-2 text-[9px] font-bold font-fancy text-primary select-none shrink-0">
                     {selected.fallback.charAt(0).toUpperCase()}
                 </span>
             {/if}
@@ -86,9 +86,9 @@
                         class="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
                                {it.value === value ? 'bg-primary/15 text-primary' : 'text-font-dim hover:bg-select hover:text-font-clear'}">
                         {#if it.img}
-                            <img src={it.img} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
+                            <img src={it.img} alt="" class="h-7 w-7 rounded-full object-cover shrink-0" />
                         {:else if it.fallback}
-                            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-card-2 text-[11px] font-bold font-fancy text-primary select-none shrink-0">
+                            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold font-fancy text-primary select-none shrink-0">
                                 {it.fallback.charAt(0).toUpperCase()}
                             </span>
                         {/if}
