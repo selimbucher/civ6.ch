@@ -71,7 +71,7 @@
                         class="w-full border-none bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
                 </div>
             {/if}
-            <div class="max-h-60 overflow-y-auto py-1">
+            <div class="scroll-area max-h-60 overflow-y-auto py-1">
                 {#each filtered as it}
                     <button type="button" onclick={() => pick(it.value)}
                         class="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
@@ -88,3 +88,23 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .scroll-area {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-card-edge-2) transparent;
+    }
+    .scroll-area::-webkit-scrollbar {
+        width: 6px;
+    }
+    .scroll-area::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scroll-area::-webkit-scrollbar-thumb {
+        background-color: var(--color-card-edge-2);
+        border-radius: 9999px;
+    }
+    .scroll-area::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-font-dimest);
+    }
+</style>
