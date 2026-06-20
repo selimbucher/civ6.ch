@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { Map, Trash2, Trophy, RefreshCw, ChevronLeft } from '@lucide/svelte';
+    import { Map, Trash2, Trophy, RefreshCw, ChevronLeft, Check } from '@lucide/svelte';
+    import Dropdown from '$lib/Dropdown.svelte';
 
     import dominationv   from '$lib/assets/icons/vcondition/domination.png';
     import religiousv    from '$lib/assets/icons/vcondition/religious.png';
@@ -82,6 +83,13 @@
         }
         return order.map((t) => byTeam[t]);
     });
+
+    // True if some other row already claims this player (one player per slot).
+    function takenByOther(pid: number, rowId: number): boolean {
+        return Object.entries(assignments).some(
+            ([rid, p]) => p === pid && parseInt(rid) !== rowId
+        );
+    }
 
     const allAssigned  = $derived(rows.every((r: any) => (assignments[r.id] ?? 0) !== 0));
     const canFinalize  = $derived(allAssigned && !!selectedVictory && winnerTeam !== null);
@@ -258,25 +266,22 @@
                             <td class="px-4 py-3">
                                 <input type="hidden" name="row_{row.id}" value={assignments[row.id] ?? 0} />
                                 <input type="hidden" name="winner_{row.id}" value={isWinner ? 'on' : ''} />
-                                <div class="flex flex-wrap gap-1">
-                                    {#each players as p}
-                                        {@const takenByOther = Object.entries(assignments).some(
-                                            ([rid, pid]) => pid === p.id && parseInt(rid) !== row.id
-                                        )}
-                                        {@const isSelected = assignments[row.id] === p.id}
-                                        <button type="button"
-                                            disabled={takenByOther && !isSelected}
-                                            onclick={() => assignments[row.id] = isSelected ? 0 : p.id}
-                                            class="px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-100 cursor-pointer
-                                                   {isSelected
-                                                     ? 'bg-primary/15 text-primary border border-primary/30'
-                                                     : takenByOther
-                                                       ? 'text-font-dimest/25 border border-transparent cursor-default'
-                                                       : 'text-font-dimer border border-transparent hover:border-card-edge hover:text-font-dim'}">
-                                            {p.name}
-                                        </button>
-                                    {/each}
-                                </div>
+                                {#if row.matched_player_id}
+                                    <!-- Recognised by Steam ID — locked to that player. -->
+                                    <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                                        <Check class="h-3 w-3 shrink-0" /> {row.matched_player_name ?? '—'}
+                                    </span>
+                                {:else}
+                                    <div class="w-48">
+                                        <Dropdown
+                                            value={String(assignments[row.id] ?? '')}
+                                            onChange={(v) => (assignments[row.id] = v ? parseInt(v) : 0)}
+                                            items={players
+                                                .filter((p: any) => !takenByOther(p.id, row.id))
+                                                .map((p: any) => ({ value: String(p.id), label: p.name }))}
+                                            placeholder="Assign player…" />
+                                    </div>
+                                {/if}
                             </td>
 
                             <!-- Yields -->

@@ -6,12 +6,14 @@
         value = $bindable(''),
         items,
         placeholder = 'Select…',
-        searchable = true
+        searchable = true,
+        onChange
     }: {
         value?: string;
         items: Item[];
         placeholder?: string;
         searchable?: boolean;
+        onChange?: (value: string) => void;
     } = $props();
 
     let open = $state(false);
@@ -36,6 +38,7 @@
     }
     function pick(v: string) {
         value = v;
+        onChange?.(v);
         open = false;
         search = '';
     }
