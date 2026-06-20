@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import {
         Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
-        Bell, Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame,
+        Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame,
         Image as ImageIcon, Upload, RotateCcw
     } from '@lucide/svelte';
     import Avatar from '$lib/Avatar.svelte';
@@ -15,21 +15,9 @@
 
     const steamStatus = $derived($page.url.searchParams.get('steam'));
 
-    // Uncontrolled profile inputs (value from server data) so saved values show
-    // after submit. Name is stored as "First Last".
-    const fullName  = $derived((data.profile?.name ?? '') as string);
-    const firstName = $derived(fullName.split(' ')[0] ?? '');
-    const lastName  = $derived(fullName.split(' ').slice(1).join(' '));
-    const email     = $derived((data.profile?.email ?? '') as string);
-
-    const notifyMeta = [
-        { key: 'new_game',    label: 'A game you played is logged', desc: 'A toga-clad courier sprints to your inbox when a match you were in is uploaded.' },
-        { key: 'denounced',   label: 'A rival denounces you',       desc: 'Hear the bad news first, by carrier pigeon (email).' },
-        { key: 'weekly',      label: 'The weekly herald',           desc: 'A Sunday scroll summarising the standings and fresh grudges.' },
-        { key: 'achievement', label: 'You unlock an achievement',   desc: 'Silent trumpets, delivered straight to your email.' }
-    ];
-    let notif = $state<Record<string, boolean>>({});
-    $effect(() => { notif = { ...(data.notify ?? {}) }; });
+    // Uncontrolled profile input (value from server data) so the saved value
+    // shows after submit.
+    const email = $derived((data.profile?.email ?? '') as string);
 
     let denounceTarget = $state('');
     const playerItems = $derived(players.map((p: any) => ({ value: String(p.id), label: p.name })));
@@ -76,15 +64,6 @@
             class="rounded-lg border border-card-edge bg-card-2 px-3 py-2 text-sm text-font-clear
                    outline-none focus:border-primary/40 placeholder:text-font-dimest" />
     </label>
-{/snippet}
-
-{#snippet switchBtn(on: boolean, onToggle: () => void)}
-    <button type="button" role="switch" aria-checked={on} aria-label="toggle" onclick={onToggle}
-        class="relative h-5.5 w-10 rounded-full transition-colors duration-150 shrink-0 cursor-pointer
-               {on ? 'bg-primary' : 'bg-card-edge-2'}">
-        <span class="absolute top-0.5 left-0.5 h-4.5 w-4.5 rounded-full bg-font-clear shadow-sm transition-transform duration-150
-                     {on ? 'translate-x-4.5' : ''}"></span>
-    </button>
 {/snippet}
 
 {#snippet primaryBtn(label: string)}
@@ -167,10 +146,6 @@
             {#if form?.profileError}{@render banner(false, form.profileError)}{/if}
 
             <div class="flex flex-col gap-4">
-                <div class="flex flex-col sm:flex-row gap-4">
-                    {@render field('First name', 'first', 'text', firstName, '')}
-                    {@render field('Last name', 'last', 'text', lastName, '')}
-                </div>
                 <div class="flex flex-col gap-1">
                     {@render field('Email', 'email', 'email', email, 'you@example.com')}
                     <span class="text-xs text-font-dimest">Used to sign in and recover your account. Never shown publicly.</span>
@@ -216,32 +191,6 @@
                 </form>
             </div>
         </div>
-    </div>
-
-    <!-- Town Crier (notifications) -->
-    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
-        <div class="h-[3px] bg-gradient-primary"></div>
-        <form method="POST" action="?/notifications" use:enhance class="p-6 flex flex-col gap-5">
-            <div class="flex flex-col gap-1">
-                {@render head(Bell, 'Town Crier')}
-                <p class="text-sm text-font-dimer">Choose when a messenger should bring word to your inbox.</p>
-            </div>
-            {#if form?.notifyOk}{@render banner(true, 'Notification preferences saved.')}{/if}
-
-            <div class="flex flex-col divide-y divide-card-edge">
-                {#each notifyMeta as n}
-                    <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                        <input type="hidden" name="notify_{n.key}" value={notif[n.key] ? 'on' : ''} />
-                        <div class="flex flex-col leading-tight flex-1 min-w-0">
-                            <span class="text-sm text-font-clear">{n.label}</span>
-                            <span class="text-xs text-font-dimest mt-0.5">{n.desc}</span>
-                        </div>
-                        {@render switchBtn(!!notif[n.key], () => (notif[n.key] = !notif[n.key]))}
-                    </div>
-                {/each}
-            </div>
-            <div>{@render primaryBtn('Save preferences')}</div>
-        </form>
     </div>
 
     <!-- Diplomacy (denounce / forgive) -->

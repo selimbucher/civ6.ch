@@ -46,21 +46,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-    // ── Profile (display name + email), confirmed by password ──────────────────
+    // ── Profile (email), confirmed by password ─────────────────────────────────
     profile: async ({ request, locals }) => {
         if (!locals.user) return fail(401, { error: 'Not logged in' });
         const data = await request.formData();
 
-        const first = (data.get('first') as string ?? '').trim();
-        const last = (data.get('last') as string ?? '').trim();
         const emailRaw = (data.get('email') as string ?? '').trim();
         const email = emailRaw === '' ? null : emailRaw;
         const password = data.get('password') as string;
 
-        if (!first || !last)
-            return fail(400, { profileError: 'First and last name are both required' });
-        if (first.length > 30 || last.length > 30)
-            return fail(400, { profileError: 'Names must be 30 characters or fewer' });
         if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
             return fail(400, { profileError: 'That email address looks invalid' });
         if (!password)
@@ -81,8 +75,6 @@ export const actions: Actions = {
             if (clash) return fail(400, { profileError: 'That email is already in use' });
         }
 
-        const name = `${first} ${last}`;
-        await sql`UPDATE players SET name = ${name} WHERE id = ${locals.user.id}`;
         await sql`UPDATE users SET email = ${email} WHERE id = ${locals.user.id}`;
         return { profileOk: true };
     },
@@ -176,22 +168,40 @@ export const actions: Actions = {
         const target = parseInt(data.get('player_id') as string);
         if (isNaN(target)) return fail(400, { diploError: 'Choose a player to denounce' });
         if (target === locals.user.id) return fail(400, { diploError: 'You cannot denounce yourself. Probably.' });
-        await sql`
+        // denouncements holds the current state (for badges); denouncement_events
+        // is an append-only log so rating amplification stays reproducible.
+        const inserted = await sql`
             INSERT INTO denouncements (denouncer_id, denounced_id)
             VALUES (${locals.user.id}, ${target})
             ON CONFLICT DO NOTHING
+            RETURNING id
         `;
+        if (inserted.length) {
+            await sql`
+                INSERT INTO denouncement_events (denouncer_id, denounced_id, action)
+                VALUES (${locals.user.id}, ${target}, 'denounce')
+            `;
+        }
         return { denounceOk: true };
     },
+    // Only the denouncer can forgive their own denouncement (scoped by
+    // denouncer_id) — otherwise the target could simply clear it themselves.
     forgive: async ({ request, locals }) => {
         if (!locals.user) return fail(401, { error: 'Not logged in' });
         const data = await request.formData();
         const target = parseInt(data.get('player_id') as string);
         if (isNaN(target)) return fail(400, { diploError: 'Missing player' });
-        await sql`
+        const removed = await sql`
             DELETE FROM denouncements
             WHERE denouncer_id = ${locals.user.id} AND denounced_id = ${target}
+            RETURNING denounced_id
         `;
+        if (removed.length) {
+            await sql`
+                INSERT INTO denouncement_events (denouncer_id, denounced_id, action)
+                VALUES (${locals.user.id}, ${target}, 'forgive')
+            `;
+        }
         return { forgiveOk: true };
     },
 
@@ -199,8 +209,17 @@ export const actions: Actions = {
     // Withdraw every denouncement you have issued.
     sue_for_peace: async ({ locals }) => {
         if (!locals.user) return fail(401, { error: 'Not logged in' });
-        const res = await sql`DELETE FROM denouncements WHERE denouncer_id = ${locals.user.id}`;
-        return { peaceOk: true, peaceCount: res.count };
+        const removed = await sql`
+            DELETE FROM denouncements WHERE denouncer_id = ${locals.user.id}
+            RETURNING denounced_id
+        `;
+        for (const r of removed) {
+            await sql`
+                INSERT INTO denouncement_events (denouncer_id, denounced_id, action)
+                VALUES (${locals.user.id}, ${r.denounced_id}, 'forgive')
+            `;
+        }
+        return { peaceOk: true, peaceCount: removed.length };
     },
     // Unlink every Steam account.
     sever_steam: async ({ locals }) => {
