@@ -64,7 +64,7 @@
         <div style="position:fixed; {menuStyle}"
             class="z-50 rounded-lg border border-card-edge bg-card shadow-lg shadow-darken overflow-hidden">
             {#if searchable}
-                <div class="flex items-center gap-2 px-3 py-2 border-b border-card-edge">
+                <div class="flex items-center gap-2 px-3 py-2">
                     <Search class="h-3.5 w-3.5 text-font-dimest shrink-0" />
                     <!-- svelte-ignore a11y_autofocus -->
                     <input bind:value={search} autofocus placeholder="Search…"
