@@ -34,13 +34,17 @@
     }
 
     const isLeader = $derived(avatar?.startsWith('leader:'));
+    // Uploaded avatars are stored as 'upload' or 'upload:<version>'. The version
+    // is appended to the URL so a re-upload busts the browser cache.
+    const isUpload = $derived(avatar === 'upload' || (avatar?.startsWith('upload:') ?? false));
+    const uploadVersion = $derived(avatar?.startsWith('upload:') ? avatar.slice(7) : '');
     const src = $derived(
         !avatar
             ? null
             : isLeader
               ? leaderPortrait(avatar!.slice(7))
-              : avatar === 'upload'
-                ? `/files/avatars/${id}`
+              : isUpload
+                ? `/files/avatars/${id}${uploadVersion ? `?v=${uploadVersion}` : ''}`
                 : null
     );
 

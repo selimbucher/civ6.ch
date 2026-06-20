@@ -132,7 +132,9 @@ export const actions: Actions = {
         }
         if (!res.ok) return fail(500, { avatarError: 'Upload failed' });
 
-        await sql`UPDATE players SET avatar = 'upload' WHERE id = ${locals.user.id}`;
+        // Store a version token so the <img> URL changes on each upload and the
+        // browser fetches the new image instead of the cached one.
+        await sql`UPDATE players SET avatar = ${'upload:' + Date.now()} WHERE id = ${locals.user.id}`;
         return { avatarOk: true };
     },
     avatar_leader: async ({ request, locals }) => {
