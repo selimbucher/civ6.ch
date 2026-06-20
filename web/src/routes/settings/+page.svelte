@@ -8,7 +8,6 @@
     } from '@lucide/svelte';
     import Avatar from '$lib/Avatar.svelte';
     import Dropdown from '$lib/Dropdown.svelte';
-    import { avatarUrl } from '$lib/avatar';
     import type { PageData } from './$types';
 
     let { data, form }: { data: PageData; form: any } = $props();
@@ -25,8 +24,8 @@
         players.map((p: any) => ({
             value: String(p.id),
             label: p.name,
-            img: avatarUrl(p.id, p.avatar) ?? undefined,
-            fallback: p.name
+            avatarId: p.id,
+            avatarValue: p.avatar
         }))
     );
 

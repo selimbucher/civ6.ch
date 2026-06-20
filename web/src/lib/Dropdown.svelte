@@ -1,9 +1,18 @@
 <script lang="ts">
     import { ChevronDown, Search } from '@lucide/svelte';
+    import Avatar from './Avatar.svelte';
 
-    // `img` is an avatar URL; `fallback` is text whose first letter is shown in
-    // a circle when there's no image (mirrors Avatar.svelte's initial fallback).
-    type Item = { value: string; label: string; img?: string; fallback?: string };
+    // Either provide `img` (a plain image URL, e.g. leader portraits) or the
+    // `avatarId`/`avatarValue` pair to render a player's <Avatar> (uploaded
+    // image, leader portrait, or initial-letter fallback) — identical to how
+    // avatars look elsewhere in the app.
+    type Item = {
+        value: string;
+        label: string;
+        img?: string;
+        avatarId?: number;
+        avatarValue?: string | null;
+    };
     let {
         value = $bindable(''),
         items,
@@ -53,12 +62,12 @@
         class="w-full flex items-center justify-between gap-2 rounded-lg border bg-card-2 px-3 py-2 text-sm transition-colors duration-150 cursor-pointer
                {open ? 'border-primary/40' : 'border-card-edge hover:border-card-edge-2'}">
         <span class="flex items-center gap-2 min-w-0">
-            {#if selected?.img}
+            {#if selected?.avatarId != null}
+                <Avatar id={selected.avatarId} name={selected.label} avatar={selected.avatarValue ?? null}
+                    wrapClass="h-7 w-7 rounded-full bg-card-2 border border-card-edge shrink-0"
+                    letterClass="text-[10px] font-bold font-fancy text-primary select-none" />
+            {:else if selected?.img}
                 <img src={selected.img} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
-            {:else if selected?.fallback}
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-card-2 text-[9px] font-bold font-fancy text-primary select-none shrink-0">
-                    {selected.fallback.charAt(0).toUpperCase()}
-                </span>
             {/if}
             <span class="truncate {selected ? 'text-font-clear' : 'text-font-dimest'}">
                 {selected?.label ?? placeholder}
@@ -85,12 +94,12 @@
                     <button type="button" onclick={() => pick(it.value)}
                         class="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm transition-colors duration-100 cursor-pointer
                                {it.value === value ? 'bg-primary/15 text-primary' : 'text-font-dim hover:bg-select hover:text-font-clear'}">
-                        {#if it.img}
-                            <img src={it.img} alt="" class="h-7 w-7 rounded-full object-cover shrink-0" />
-                        {:else if it.fallback}
-                            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold font-fancy text-primary select-none shrink-0">
-                                {it.fallback.charAt(0).toUpperCase()}
-                            </span>
+                        {#if it.avatarId != null}
+                            <Avatar id={it.avatarId} name={it.label} avatar={it.avatarValue ?? null}
+                                wrapClass="h-7 w-7 rounded-full bg-card-2 border border-card-edge shrink-0"
+                                letterClass="text-[10px] font-bold font-fancy text-primary select-none" />
+                        {:else if it.img}
+                            <img src={it.img} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
                         {/if}
                         <span class="truncate">{it.label}</span>
                     </button>

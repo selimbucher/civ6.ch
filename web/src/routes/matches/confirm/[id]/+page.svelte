@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { Map, Trash2, Trophy, RefreshCw, ChevronLeft, Check } from '@lucide/svelte';
+    import { Map, Trash2, Trophy, RefreshCw, ChevronLeft } from '@lucide/svelte';
     import Dropdown from '$lib/Dropdown.svelte';
-    import { avatarUrl } from '$lib/avatar';
+    import Avatar from '$lib/Avatar.svelte';
 
     import dominationv   from '$lib/assets/icons/vcondition/domination.png';
     import religiousv    from '$lib/assets/icons/vcondition/religious.png';
@@ -269,14 +269,10 @@
                                 <input type="hidden" name="winner_{row.id}" value={isWinner ? 'on' : ''} />
                                 {#if row.matched_player_id}
                                     <!-- Recognised by Steam ID — locked to that player. -->
-                                    {@const matchedImg = avatarUrl(row.matched_player_id, row.matched_player_avatar)}
-                                    <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 py-1 pr-2.5 text-xs font-medium text-primary
-                                                 {matchedImg ? 'pl-1' : 'pl-2.5'}">
-                                        {#if matchedImg}
-                                            <img src={matchedImg} alt="" class="h-5 w-5 rounded-full object-cover shrink-0" />
-                                        {:else}
-                                            <Check class="h-3 w-3 shrink-0" />
-                                        {/if}
+                                    <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 py-1 pl-1 pr-2.5 text-xs font-medium text-primary">
+                                        <Avatar id={row.matched_player_id} name={row.matched_player_name ?? '?'} avatar={row.matched_player_avatar}
+                                            wrapClass="h-5 w-5 rounded-full bg-card-2 border border-card-edge shrink-0"
+                                            letterClass="text-[9px] font-bold font-fancy text-primary select-none" />
                                         {row.matched_player_name ?? '—'}
                                     </span>
                                 {:else}
@@ -286,7 +282,7 @@
                                             onChange={(v) => (assignments[row.id] = v ? parseInt(v) : 0)}
                                             items={players
                                                 .filter((p: any) => !takenByOther(p.id, row.id))
-                                                .map((p: any) => ({ value: String(p.id), label: p.name, img: avatarUrl(p.id, p.avatar) ?? undefined, fallback: p.name }))}
+                                                .map((p: any) => ({ value: String(p.id), label: p.name, avatarId: p.id, avatarValue: p.avatar }))}
                                             placeholder="Assign player…" />
                                     </div>
                                 {/if}
