@@ -15,6 +15,10 @@ const (
 	defaultVolatility = 0.06
 	maxRD             = 150.0
 	tau               = 0.25
+
+	// denounceAmplify scales the rating change of a matchup between two players
+	// with an active denouncement (in either direction) between them.
+	denounceAmplify = 1.5
 )
 
 type gameRow struct {
@@ -140,6 +144,49 @@ func updateGamePlayer(ctx context.Context, pool *pgxpool.Pool, gameID, playerID 
 	return err
 }
 
+// orderedPair returns the two ids in ascending order, so a denouncement in
+// either direction maps to the same key.
+func orderedPair(a, b int) [2]int {
+	if a > b {
+		a, b = b, a
+	}
+	return [2]int{a, b}
+}
+
+// activeDenouncements returns the set of unordered player pairs (among the given
+// players) that had an active denouncement — in either direction — as of asOf.
+// State is reconstructed from the append-only denouncement_events log so that
+// rating recalculation is reproducible regardless of later forgive/denounce
+// actions: a pair is active when the most recent event at or before asOf for
+// some direction is a 'denounce'.
+func activeDenouncements(ctx context.Context, pool *pgxpool.Pool, playerIDs []int, asOf time.Time) (map[[2]int]bool, error) {
+	pairs := map[[2]int]bool{}
+	rows, err := pool.Query(ctx, `
+		SELECT denouncer_id, denounced_id FROM (
+			SELECT DISTINCT ON (denouncer_id, denounced_id)
+			       denouncer_id, denounced_id, action
+			FROM denouncement_events
+			WHERE created_at <= $1
+			  AND denouncer_id = ANY($2)
+			  AND denounced_id = ANY($2)
+			ORDER BY denouncer_id, denounced_id, created_at DESC, id DESC
+		) latest
+		WHERE action = 'denounce'
+	`, asOf, playerIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a, b int
+		if err := rows.Scan(&a, &b); err != nil {
+			return nil, err
+		}
+		pairs[orderedPair(a, b)] = true
+	}
+	return pairs, rows.Err()
+}
+
 func teamScore(players []gamePlayerRow, team int) int {
 	s := 0
 	for _, p := range players {
@@ -191,8 +238,16 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 
 	// group players by team
 	teams := map[int][]gamePlayerRow{}
+	playerIDs := make([]int, 0, len(players))
 	for _, p := range players {
 		teams[p.team] = append(teams[p.team], p)
+		playerIDs = append(playerIDs, p.playerID)
+	}
+
+	// active grudges as of this game's date, for matchup amplification
+	denouncePairs, err := activeDenouncements(ctx, pool, playerIDs, game.date)
+	if err != nil {
+		return fmt.Errorf("fetch denouncements: %w", err)
 	}
 
 	// find smallest team size for normalization
@@ -248,10 +303,12 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 		teamRating, teamRD := aggregateRatings(members, smallestTeam, catOf)
 		teamRatingOverall, teamRDOverall := aggregateRatings(members, smallestTeam, overallOf)
 
-		// aggregate opponents
+		// aggregate opponents (oppTeamIDs is kept parallel to the opp/result
+		// slices so per-member grudge weights can be computed below)
 		var oppsCat []glicko.Opponent
 		var oppsOverall []glicko.Opponent
 		var results []float64
+		var oppTeamIDs []int
 
 		myScore := teamScore(players, teamID)
 		myWon := teamWon(players, teamID)
@@ -269,6 +326,7 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 			oppsCat = append(oppsCat, glicko.Opponent{Rating: oppRating, RD: oppRD})
 			oppsOverall = append(oppsOverall, glicko.Opponent{Rating: oppRatingOverall, RD: oppRDOverall})
 			results = append(results, result)
+			oppTeamIDs = append(oppTeamIDs, oppID)
 		}
 
 		ts := len(members)
@@ -283,8 +341,21 @@ func ProcessGame(ctx context.Context, pool *pgxpool.Pool, gameID int, decayRD bo
 				RD:         states[m.playerID].overall.rd,
 				Volatility: states[m.playerID].overall.volatility,
 			}
-			newCat[m.playerID] = glicko.Update(pre, teamRating, teamRD, oppsCat, results, ts, tau)
-			newOverall[m.playerID] = glicko.Update(preOverall, teamRatingOverall, teamRDOverall, oppsOverall, results, ts, tau)
+
+			// amplify matchups against teams holding a denounced rival
+			weights := make([]float64, len(oppTeamIDs))
+			for i, oppID := range oppTeamIDs {
+				weights[i] = 1.0
+				for _, o := range teams[oppID] {
+					if denouncePairs[orderedPair(m.playerID, o.playerID)] {
+						weights[i] = denounceAmplify
+						break
+					}
+				}
+			}
+
+			newCat[m.playerID] = glicko.Update(pre, teamRating, teamRD, oppsCat, results, weights, ts, tau)
+			newOverall[m.playerID] = glicko.Update(preOverall, teamRatingOverall, teamRDOverall, oppsOverall, results, weights, ts, tau)
 		}
 	}
 

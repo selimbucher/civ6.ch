@@ -81,8 +81,10 @@ type Opponent struct {
 // supply the full team aggregate.
 // results is the slice of result scalars against each opposing team.
 // opponents is the slice of opposing team aggregates.
+// weights scales each opposing matchup's pull on the rating (1.0 = normal);
+// pass nil for all-1.0. Used to amplify grudge matchups between rivals.
 // teamSize is used to split the rating gain for team games.
-func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results []float64, teamSize int, τ float64) Player {
+func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results []float64, weights []float64, teamSize int, τ float64) Player {
 	μ := toGlicko(p.Rating)
 	φ := toGlickoRD(p.RD)
 	σ := p.Volatility
@@ -96,12 +98,19 @@ func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results 
 		φj[i] = toGlickoRD(o.RD)
 	}
 
+	w := func(i int) float64 {
+		if weights == nil || i >= len(weights) {
+			return 1
+		}
+		return weights[i]
+	}
+
 	// Step 3: compute v
 	v := 0.0
 	for i := range opponents {
 		gv := g(φj[i])
 		e := expected(μt, μj[i], φj[i])
-		v += gv * gv * e * (1 - e)
+		v += w(i) * gv * gv * e * (1 - e)
 	}
 	v = 1 / v
 
@@ -109,7 +118,7 @@ func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results 
 	delta := 0.0
 	for i := range opponents {
 		e := expected(μt, μj[i], φj[i])
-		delta += g(φj[i]) * (results[i] - e)
+		delta += w(i) * g(φj[i]) * (results[i] - e)
 	}
 	delta *= v
 
@@ -158,7 +167,7 @@ func Update(p Player, teamRating, teamRD float64, opponents []Opponent, results 
 	μ2 := μ
 	for i := range opponents {
 		e := expected(μt, μj[i], φj[i])
-		μ2 += φ2 * φ2 * g(φj[i]) * (results[i] - e)
+		μ2 += φ2 * φ2 * w(i) * g(φj[i]) * (results[i] - e)
 	}
 
 	// team size split
