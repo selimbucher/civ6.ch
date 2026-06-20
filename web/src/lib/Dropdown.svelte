@@ -56,7 +56,7 @@
             {#if selected?.img}
                 <img src={selected.img} alt="" class="h-5 w-5 rounded-full object-cover shrink-0" />
             {:else if selected?.fallback}
-                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-card-edge text-[10px] font-semibold text-font-dim shrink-0">
+                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold font-fancy text-primary select-none shrink-0">
                     {selected.fallback.charAt(0).toUpperCase()}
                 </span>
             {/if}
@@ -88,7 +88,7 @@
                         {#if it.img}
                             <img src={it.img} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
                         {:else if it.fallback}
-                            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-card-edge text-[11px] font-semibold text-font-dim shrink-0">
+                            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-card-2 text-[11px] font-bold font-fancy text-primary select-none shrink-0">
                                 {it.fallback.charAt(0).toUpperCase()}
                             </span>
                         {/if}
