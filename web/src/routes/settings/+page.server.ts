@@ -174,7 +174,7 @@ export const actions: Actions = {
             INSERT INTO denouncements (denouncer_id, denounced_id)
             VALUES (${locals.user.id}, ${target})
             ON CONFLICT DO NOTHING
-            RETURNING id
+            RETURNING denouncer_id
         `;
         if (inserted.length) {
             await sql`
