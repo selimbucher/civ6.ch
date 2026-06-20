@@ -24,7 +24,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
                gp.population, gp.science, gp.culture, gp.food, gp.production,
                gp.gold, gp.faith, gp.tourism, gp.favor,
                psi.player_id AS matched_player_id,
-               mp.name       AS matched_player_name
+               mp.name       AS matched_player_name,
+               mp.avatar     AS matched_player_avatar
         FROM game_players gp
         LEFT JOIN player_steam_ids psi ON psi.steam_id = gp.steam_id
         LEFT JOIN players mp ON mp.id = psi.player_id
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     // account. Anyone with a linked Steam ID is matched automatically from the
     // save, so listing them here would only bloat the picker.
     const players = await sql`
-        SELECT id, name FROM players
+        SELECT id, name, avatar FROM players
         WHERE id NOT IN (SELECT player_id FROM player_steam_ids)
         ORDER BY name
     `;

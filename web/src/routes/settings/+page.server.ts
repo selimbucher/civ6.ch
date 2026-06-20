@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
     // Candidates to denounce: active players you haven't already denounced.
     const players = await sql`
-        SELECT id, name FROM players
+        SELECT id, name, avatar FROM players
         WHERE active = true AND id <> ${me}
           AND id NOT IN (SELECT denounced_id FROM denouncements WHERE denouncer_id = ${me})
         ORDER BY name

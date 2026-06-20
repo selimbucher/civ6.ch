@@ -8,6 +8,7 @@
     } from '@lucide/svelte';
     import Avatar from '$lib/Avatar.svelte';
     import Dropdown from '$lib/Dropdown.svelte';
+    import { avatarUrl } from '$lib/avatar';
     import type { PageData } from './$types';
 
     let { data, form }: { data: PageData; form: any } = $props();
@@ -20,7 +21,13 @@
     const email = $derived((data.profile?.email ?? '') as string);
 
     let denounceTarget = $state('');
-    const playerItems = $derived(players.map((p: any) => ({ value: String(p.id), label: p.name })));
+    const playerItems = $derived(
+        players.map((p: any) => ({
+            value: String(p.id),
+            label: p.name,
+            img: avatarUrl(p.id, p.avatar) ?? undefined
+        }))
+    );
 
     // Avatar: file upload + leader picker.
     let avatarFile = $state<File | null>(null);
