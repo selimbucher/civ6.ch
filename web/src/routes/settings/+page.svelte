@@ -25,7 +25,8 @@
         players.map((p: any) => ({
             value: String(p.id),
             label: p.name,
-            img: avatarUrl(p.id, p.avatar) ?? undefined
+            img: avatarUrl(p.id, p.avatar) ?? undefined,
+            fallback: p.name
         }))
     );
 

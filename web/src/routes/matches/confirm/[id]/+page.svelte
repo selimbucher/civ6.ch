@@ -286,7 +286,7 @@
                                             onChange={(v) => (assignments[row.id] = v ? parseInt(v) : 0)}
                                             items={players
                                                 .filter((p: any) => !takenByOther(p.id, row.id))
-                                                .map((p: any) => ({ value: String(p.id), label: p.name, img: avatarUrl(p.id, p.avatar) ?? undefined }))}
+                                                .map((p: any) => ({ value: String(p.id), label: p.name, img: avatarUrl(p.id, p.avatar) ?? undefined, fallback: p.name }))}
                                             placeholder="Assign player…" />
                                     </div>
                                 {/if}

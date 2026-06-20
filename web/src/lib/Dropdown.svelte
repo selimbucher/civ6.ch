@@ -1,7 +1,9 @@
 <script lang="ts">
     import { ChevronDown, Search } from '@lucide/svelte';
 
-    type Item = { value: string; label: string; img?: string };
+    // `img` is an avatar URL; `fallback` is text whose first letter is shown in
+    // a circle when there's no image (mirrors Avatar.svelte's initial fallback).
+    type Item = { value: string; label: string; img?: string; fallback?: string };
     let {
         value = $bindable(''),
         items,
@@ -53,6 +55,10 @@
         <span class="flex items-center gap-2 min-w-0">
             {#if selected?.img}
                 <img src={selected.img} alt="" class="h-5 w-5 rounded-full object-cover shrink-0" />
+            {:else if selected?.fallback}
+                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-card-edge text-[10px] font-semibold text-font-dim shrink-0">
+                    {selected.fallback.charAt(0).toUpperCase()}
+                </span>
             {/if}
             <span class="truncate {selected ? 'text-font-clear' : 'text-font-dimest'}">
                 {selected?.label ?? placeholder}
@@ -81,6 +87,10 @@
                                {it.value === value ? 'bg-primary/15 text-primary' : 'text-font-dim hover:bg-select hover:text-font-clear'}">
                         {#if it.img}
                             <img src={it.img} alt="" class="h-6 w-6 rounded-full object-cover shrink-0" />
+                        {:else if it.fallback}
+                            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-card-edge text-[11px] font-semibold text-font-dim shrink-0">
+                                {it.fallback.charAt(0).toUpperCase()}
+                            </span>
                         {/if}
                         <span class="truncate">{it.label}</span>
                     </button>
