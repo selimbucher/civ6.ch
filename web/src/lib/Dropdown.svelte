@@ -68,7 +68,7 @@
                     <Search class="h-3.5 w-3.5 text-font-dimest shrink-0" />
                     <!-- svelte-ignore a11y_autofocus -->
                     <input bind:value={search} autofocus placeholder="Search…"
-                        class="w-full bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
+                        class="w-full border-none bg-transparent text-sm text-font-clear outline-none placeholder:text-font-dimest" />
                 </div>
             {/if}
             <div class="max-h-60 overflow-y-auto py-1">
