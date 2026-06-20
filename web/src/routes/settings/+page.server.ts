@@ -206,26 +206,24 @@ export const actions: Actions = {
     },
 
     // ── Danger zone: real, reversible actions ──────────────────────────────────
-    // Withdraw every denouncement you have issued.
-    sue_for_peace: async ({ locals }) => {
+    // Denounce every other active player at once.
+    denounce_all: async ({ locals }) => {
         if (!locals.user) return fail(401, { error: 'Not logged in' });
-        const removed = await sql`
-            DELETE FROM denouncements WHERE denouncer_id = ${locals.user.id}
+        const me = locals.user.id;
+        const inserted = await sql`
+            INSERT INTO denouncements (denouncer_id, denounced_id)
+            SELECT ${me}, p.id FROM players p
+            WHERE p.active = true AND p.id <> ${me}
+            ON CONFLICT DO NOTHING
             RETURNING denounced_id
         `;
-        for (const r of removed) {
+        for (const r of inserted) {
             await sql`
                 INSERT INTO denouncement_events (denouncer_id, denounced_id, action)
-                VALUES (${locals.user.id}, ${r.denounced_id}, 'forgive')
+                VALUES (${me}, ${r.denounced_id}, 'denounce')
             `;
         }
-        return { peaceOk: true, peaceCount: removed.length };
-    },
-    // Unlink every Steam account.
-    sever_steam: async ({ locals }) => {
-        if (!locals.user) return fail(401, { error: 'Not logged in' });
-        const res = await sql`DELETE FROM player_steam_ids WHERE player_id = ${locals.user.id}`;
-        return { steamSevered: true, steamCount: res.count };
+        return { denounceAllOk: true, denounceAllCount: inserted.length };
     },
     // Retire from / return to the competitive ladder (leaderboards + rankings).
     toggle_active: async ({ locals }) => {

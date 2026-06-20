@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import {
         Unlink, ExternalLink, ShieldCheck, Link, User, KeyRound, LogOut,
-        Megaphone, Angry, HeartHandshake, Scroll, Crown, Flame,
+        Megaphone, Angry, HeartHandshake, Crown, Flame,
         Image as ImageIcon, Upload, RotateCcw
     } from '@lucide/svelte';
     import Avatar from '$lib/Avatar.svelte';
@@ -73,8 +73,6 @@
         {label}
     </button>
 {/snippet}
-
-<h1 class="font-fancy text-2xl font-semibold text-font-clear mx-auto w-full max-w-6xl px-4 mt-2 mb-4">Preferences</h1>
 
 <div class="mx-auto w-full max-w-6xl px-4 mb-12 columns-1 lg:columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid">
 
@@ -313,38 +311,21 @@
                 <span class="font-fancy text-lg font-semibold text-font-clear leading-none">Danger Zone</span>
             </div>
 
-            {#if form?.peaceOk}{@render banner(true, `Sued for peace — withdrew ${form.peaceCount} denouncement${form.peaceCount === 1 ? '' : 's'}.`)}{/if}
-            {#if form?.steamSevered}{@render banner(true, `Severed ${form.steamCount} Steam link${form.steamCount === 1 ? '' : 's'}.`)}{/if}
+            {#if form?.denounceAllOk}{@render banner(true, `War declared — denounced ${form.denounceAllCount} player${form.denounceAllCount === 1 ? '' : 's'}.`)}{/if}
             {#if form?.activeToggled}{@render banner(true, form.active ? 'Welcome back — you are ranked once more.' : 'You have retired from the ladder.')}{/if}
 
-            <!-- Sue for peace: clears all your denouncements -->
+            <!-- Denounce everyone: denounce every other active player at once -->
             <div class="flex items-center gap-4">
                 <div class="flex flex-col leading-tight flex-1 min-w-0">
-                    <span class="text-sm text-font-clear">Sue for peace with all rivals</span>
-                    <span class="text-xs text-font-dimest mt-0.5">Withdraw every denouncement you've issued. Grudges may, of course, be rekindled.</span>
+                    <span class="text-sm text-font-clear">Denounce all players</span>
+                    <span class="text-xs text-font-dimest mt-0.5">Declare war on the entire realm. Denounces everyone at once — you can always forgive them later, one by one.</span>
                 </div>
-                <form method="POST" action="?/sue_for_peace" class="shrink-0"
-                    use:enhance={({ cancel }) => { if (!confirm('Withdraw all your denouncements?')) cancel(); }}>
-                    <button type="submit"
-                        class="flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
-                               hover:border-primary/40 hover:text-primary transition-colors duration-150 cursor-pointer">
-                        <Scroll class="h-3.5 w-3.5" strokeWidth={1.5} /> Sue for peace
-                    </button>
-                </form>
-            </div>
-
-            <!-- Sever Steam ties: unlink all steam accounts -->
-            <div class="flex items-center gap-4">
-                <div class="flex flex-col leading-tight flex-1 min-w-0">
-                    <span class="text-sm text-font-clear">Sever your Steam allegiances</span>
-                    <span class="text-xs text-font-dimest mt-0.5">Unlink every Steam account. New uploads will no longer recognise you automatically.</span>
-                </div>
-                <form method="POST" action="?/sever_steam" class="shrink-0"
-                    use:enhance={({ cancel }) => { if (!confirm('Unlink all your Steam accounts?')) cancel(); }}>
+                <form method="POST" action="?/denounce_all" class="shrink-0"
+                    use:enhance={({ cancel }) => { if (!confirm('Denounce every other player?')) cancel(); }}>
                     <button type="submit"
                         class="flex items-center gap-1.5 rounded-lg border border-card-edge px-3 py-1.5 text-sm text-font-dimer
                                hover:border-font-bad/40 hover:text-font-bad transition-colors duration-150 cursor-pointer">
-                        <Unlink class="h-3.5 w-3.5" strokeWidth={1.5} /> Sever ties
+                        <Angry class="h-3.5 w-3.5" strokeWidth={1.5} /> Denounce all
                     </button>
                 </form>
             </div>
