@@ -19,6 +19,16 @@ const (
 	// denounceAmplify scales the rating change of a matchup between two players
 	// with an active denouncement (in either direction) between them.
 	denounceAmplify = 1.5
+
+	// teamSizeBonus is the effective rating advantage credited to a team that
+	// outnumbers the smallest team, scaled by the size ratio (len/smallest − 1)
+	// rather than the raw player difference: outnumbering 2:1 (2v1) is a far
+	// bigger edge than 3:2, even though both add one player. A team with twice
+	// the players gets the full bonus; 1.5× gets half. At 100, a 2:1 advantage
+	// ≈ a 64% expected win. This replaces the old sum-of-ratings handicap, which
+	// inflated a larger team's rating by ~1500 per extra player (a near-certain
+	// win) and so punished bigger teams far too harshly.
+	teamSizeBonus = 100.0
 )
 
 type gameRow struct {
@@ -207,14 +217,21 @@ func teamWon(players []gamePlayerRow, team int) bool {
 }
 
 // aggregateRatings combines the members' ratings into one team aggregate.
-// The rating sum is normalised by the smallest team size in the game
-// (handicap for uneven teams) while RD is averaged over the members.
-// get selects which rating row (category or overall) to aggregate.
+// The team's skill is the members' average rating, plus a teamSizeBonus scaled
+// by how far it outnumbers the smallest team (len/smallest − 1), so a 2:1 edge
+// counts double a 3:2 one. RD is averaged over the members. get selects which
+// rating row (category or overall) to aggregate.
+//
+// Averaging rather than summing matters: Glicko ratings sit on a scale whose
+// origin (1500) is arbitrary, so summing them treats "two average players" as a
+// single 3000-rated entity — a near-certain favourite — which made larger teams
+// gain almost nothing for winning and bleed rating for losing.
 func aggregateRatings(members []gamePlayerRow, smallestTeam int, get func(playerID int) ratingRow) (rating, rd float64) {
 	for _, m := range members {
 		rating += get(m.playerID).rating
 	}
-	rating /= float64(smallestTeam)
+	rating /= float64(len(members))
+	rating += teamSizeBonus * (float64(len(members))/float64(smallestTeam) - 1)
 	for _, m := range members {
 		rd += get(m.playerID).rd
 	}
