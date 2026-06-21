@@ -8,6 +8,15 @@ type CityState struct {
 	Name       string
 	Religion   uint32
 
+	// OriginalOwner is the player index that founded the city. It survives
+	// capture (the city keeps it even when owned by another player), so it
+	// identifies which civ a captured capital originally belonged to.
+	OriginalOwner int
+	// IsCapital is true for the player's current capital (the city holding the
+	// palace). Note this moves on capture, so it marks the current — not
+	// necessarily the original — capital.
+	IsCapital bool
+
 	// per-city yields (gross)
 	Food       float32
 	Production float32
@@ -50,13 +59,16 @@ func (ps *PlayerState) HasTech(crc uint32) bool {
 
 // PlayerState is the parsed state for one player slot.
 type PlayerState struct {
-	IPlayer    int
-	Cities     []CityState
-	Districts  []DistrictState
-	Gold       int
-	Faith      int
-	Government uint32
-	DiploFavor int
+	IPlayer int
+	// StartX, StartY are the player's settler start plot — the anchor for
+	// locating this civ's original capital (see DetectConquestWinner).
+	StartX, StartY int
+	Cities         []CityState
+	Districts      []DistrictState
+	Gold           int
+	Faith          int
+	Government     uint32
+	DiploFavor     int
 
 	// totals computed from city yields
 	Science    float32

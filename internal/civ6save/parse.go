@@ -321,8 +321,11 @@ func parsePlayer(r *reader, trueiPlayer int) (*PlayerState, error) {
 	r.skip(4) // 2F 00 00 00
 	r.skip(4) // iPlayer copy
 
-	r.skip(4)
-	r.skip(4) // init pos ?
+	// Original capital plot — the player's settler start position. The founded
+	// capital sits on or within a tile of it, so it anchors which city is a
+	// civ's original capital even after the capital is captured (see conquest.go).
+	ps.StartX = int(r.readU32())
+	ps.StartY = int(r.readU32())
 	r.skip(56)
 	for i := 0; i < 10; i++ {
 		r.skip(1)
@@ -1188,11 +1191,14 @@ func parseCity(r *reader, city *CityState) error {
 	city.X = int(r.readU32())
 	city.Y = int(r.readU32())
 
-	r.skip(12) // 0
-	r.skip(4)  // FF
-	r.skip(4)  // 00 00 01 00
+	r.skip(4)                             // current owner (implicit via owning PlayerState)
+	city.OriginalOwner = int(r.readU32()) // founding player — survives capture
+	r.skip(4)                             // 0
+	r.skip(4)                             // FF
+	r.skip(4)                             // 00 00 01 00
 	city.Population = int(r.readU32())
-	r.skip(2) // 01 01
+	city.IsCapital = r.readU8() != 0 // current capital (holds the palace)
+	r.skip(1)
 	r.skip(4) // random int
 	r.skip(8) // FF
 	r.skip(4) // 1F / FF

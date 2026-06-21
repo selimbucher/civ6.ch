@@ -32,6 +32,12 @@ func main() {
 			}
 			parseSave(os.Args[2], true)
 			return
+		case "detectvictory":
+			if len(os.Args) < 3 {
+				log.Fatal("usage: civ6 detectvictory <file>")
+			}
+			detectVictory(os.Args[2])
+			return
 		case "scorebreakdown":
 			if len(os.Args) < 3 {
 				log.Fatal("usage: civ6 scorebreakdown <file>")
@@ -221,6 +227,95 @@ func printBuildAudit(path string, playerIdx int) {
 			c.Name, len(entries), known, wonders, unknown, notBuilt, len(c.Built))
 		for _, e := range entries {
 			fmt.Printf("  %s crc=%08x v=%04x name=%s\n", e.kind, e.crc, e.v, e.name)
+		}
+	}
+}
+
+func detectVictory(path string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	players := civ6save.ParsePlayers(data)
+	decompressed, err := civ6save.Decompress(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	gs, err := civ6save.ParseState(decompressed)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pseudo := make(map[int]string, len(players))
+	for _, p := range players {
+		pseudo[p.Index] = p.Pseudo
+	}
+
+	fmt.Printf("file=%s turn=%d\n", path, civ6save.ParseTurn(decompressed))
+	fmt.Println("original capital control:")
+	for _, cc := range civ6save.CapitalControls(players, gs) {
+		ownerName := "(unknown)"
+		if cc.Owner >= 0 {
+			ownerName = pseudo[cc.Owner]
+		}
+		fmt.Printf("  civ %-2d %-18s capital %-22q held by player %2d (%s) team %d\n",
+			cc.Civ, pseudo[cc.Civ], cc.CityName, cc.Owner, ownerName, cc.OwnerTeam)
+	}
+
+	winner := civ6save.DetectConquestWinner(players, gs)
+	if winner < 0 {
+		fmt.Println("=> no conquest victory detected")
+	} else {
+		fmt.Printf("=> CONQUEST victory: team %d controls every original capital\n", winner)
+		for _, p := range players {
+			if p.Team == winner {
+				fmt.Printf("     winner: player %d (%s)\n", p.Index, p.Pseudo)
+			}
+		}
+	}
+
+	// ── Religion ─────────────────────────────────────────────────────────────
+	fmt.Println("religious predominance (rival civs converted / required):")
+	teamOf := make(map[int]int, len(players))
+	for _, p := range players {
+		teamOf[p.Index] = p.Team
+	}
+	for _, rel := range gs.Religions {
+		team, ok := teamOf[rel.FounderPlayer]
+		if !ok {
+			continue
+		}
+		name := rel.Name
+		if name == "" {
+			name = fmt.Sprintf("religion %08x", rel.Symbol)
+		}
+		standings := civ6save.ReligionStandings(players, gs, rel.Symbol, team)
+		converted := 0
+		for _, s := range standings {
+			if s.Predominant {
+				converted++
+			}
+		}
+		fmt.Printf("  %-22s (founder %d, team %d): %d/%d rival civs\n",
+			name, rel.FounderPlayer, team, converted, len(standings))
+		for _, s := range standings {
+			mark := " "
+			if s.Predominant {
+				mark = "✓"
+			}
+			fmt.Printf("      %s civ %-2d %d/%d religious cities (%d total)\n",
+				mark, s.Civ, s.Following, s.ReligiousCities, s.Cities)
+		}
+	}
+
+	if rw := civ6save.DetectReligiousWinner(players, gs); rw < 0 {
+		fmt.Println("=> no religious victory detected")
+	} else {
+		fmt.Printf("=> RELIGIOUS victory: team %d\n", rw)
+		for _, p := range players {
+			if p.Team == rw {
+				fmt.Printf("     winner: player %d (%s)\n", p.Index, p.Pseudo)
+			}
 		}
 	}
 }
