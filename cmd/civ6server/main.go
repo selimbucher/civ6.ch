@@ -135,6 +135,16 @@ func (s *server) handleParse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) storeFiles(gameID int, raw, decompressed []byte, players []civ6save.Player) {
+	// This runs in its own goroutine, so a panic here (e.g. a malformed save
+	// tripping the map renderer) would otherwise crash the whole server. Recover
+	// and log instead, leaving the game without a map rather than taking the
+	// process down.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("storeFiles %d: recovered panic: %v", gameID, r)
+		}
+	}()
+
 	ctx := context.Background()
 
 	// ── Save file (gzip) ──────────────────────────────────────────────────

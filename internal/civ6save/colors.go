@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// leaderColors maps leader CRC32 to 8 color slots × 8 bytes (R,G,B,A, R,G,B,A).
-// Each slot index is iColor (0-7). Primary color = slot*8+0..3, secondary = slot*8+4..7.
+// leaderColors maps leader CRC32 to 8 iColor slots of 4 bytes each (R,G,B,A).
+// Slot index is iColor (0-7); the overlay uses the primary RGB at slot*4+0..2.
 var leaderColors = map[uint32][32]uint8{
 	0x991cff9d: {1, 42, 108, 255, 249, 249, 249, 255, 202, 20, 21, 255, 249, 249, 249, 255, 249, 249, 249, 255, 1, 42, 108, 255, 1, 42, 108, 255, 202, 20, 21, 255},
 	0x2f120ae4: {247, 216, 1, 255, 21, 108, 48, 255, 21, 108, 48, 255, 121, 224, 119, 255, 121, 224, 119, 255, 24, 24, 24, 255, 134, 114, 2, 255, 97, 191, 34, 255},
@@ -111,7 +111,7 @@ func PlayerColor(leader string, icolor int) color.RGBA {
 	}
 	crc := leaderCRC(leader)
 	if c, ok := leaderColors[crc]; ok {
-		offset := icolor * 8 // each slot is 8 bytes (primary RGBA + secondary RGBA)
+		offset := icolor * 4 // each iColor slot is 4 bytes (RGBA)
 		return color.RGBA{c[offset], c[offset+1], c[offset+2], opacity}
 	}
 	// fallback fixed palette
