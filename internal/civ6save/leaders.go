@@ -129,6 +129,7 @@ var leaderSlugs = map[string]string{
 
 	// T
 	"TAMAR":                      "Tamar",
+	"T_ROOSEVELT":                "Teddy_Roosevelt", // base-game internal name
 	"TEDDY_ROOSEVELT":            "Teddy_Roosevelt",
 	"TEDDY_ROOSEVELT_ROUGHRIDER": "Teddy_Roosevelt_(Rough_Rider)",
 	"TOKUGAWA":                   "Tokugawa",
