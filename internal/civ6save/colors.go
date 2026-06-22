@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// leaderColors maps leader CRC32 to 8 iColor slots of 4 bytes each (R,G,B,A).
-// Slot index is iColor (0-7); the overlay uses the primary RGB at slot*4+0..2.
+// leaderColors maps leader CRC32 to 4 iColor slots of 8 bytes each: primary
+// RGBA + secondary RGBA. Slot index is iColor; the overlay uses the primary RGB
+// at slot*8+0..2. (Slots come in inverse pairs, e.g. blue/white and white/blue.)
 var leaderColors = map[uint32][32]uint8{
 	0x991cff9d: {1, 42, 108, 255, 249, 249, 249, 255, 202, 20, 21, 255, 249, 249, 249, 255, 249, 249, 249, 255, 1, 42, 108, 255, 1, 42, 108, 255, 202, 20, 21, 255},
 	0x2f120ae4: {247, 216, 1, 255, 21, 108, 48, 255, 21, 108, 48, 255, 121, 224, 119, 255, 121, 224, 119, 255, 24, 24, 24, 255, 134, 114, 2, 255, 97, 191, 34, 255},
@@ -99,6 +100,32 @@ func leaderCRC(s string) uint32 {
 	return ^crc32.ChecksumIEEE([]byte(s))
 }
 
+// fallbackColors is the generic palette used both for leaders missing from the
+// color table and to break collisions when a leader's own schemes are all taken.
+var fallbackColors = [...]color.RGBA{
+	{202, 20, 21, opacity},   // red
+	{1, 42, 108, opacity},    // blue
+	{247, 216, 1, opacity},   // yellow
+	{21, 108, 48, opacity},   // green
+	{116, 163, 243, opacity}, // light blue
+	{120, 0, 1, opacity},     // dark red
+	{255, 129, 18, opacity},  // orange
+	{109, 0, 205, opacity},   // purple
+}
+
+// leaderColorSlots returns how many distinct color schemes a leader has: one
+// per 8-byte (primary+secondary RGBA) slot in its table entry, or the full
+// generic palette for leaders not in the table.
+func leaderColorSlots(leader string) int {
+	if idx := strings.LastIndex(leader, "::"); idx != -1 {
+		leader = leader[idx+2:]
+	}
+	if c, ok := leaderColors[leaderCRC(leader)]; ok {
+		return len(c) / 8
+	}
+	return len(fallbackColors)
+}
+
 // PlayerColor returns the primary overlay color for a leader+iColor combination.
 // Falls back to a fixed palette if the leader is not in the color table.
 func PlayerColor(leader string, icolor int) color.RGBA {
@@ -106,32 +133,25 @@ func PlayerColor(leader string, icolor int) color.RGBA {
 	if idx := strings.LastIndex(leader, "::"); idx != -1 {
 		leader = leader[idx+2:]
 	}
-	if icolor < 0 || icolor > 7 {
+	if icolor < 0 {
 		icolor = 0
 	}
-	crc := leaderCRC(leader)
-	if c, ok := leaderColors[crc]; ok {
-		offset := icolor * 4 // each iColor slot is 4 bytes (RGBA)
+	if c, ok := leaderColors[leaderCRC(leader)]; ok {
+		// Each slot is 8 bytes: primary RGBA + secondary RGBA. The overlay uses
+		// the primary RGB. Wrap by slot count so an out-of-range iColor (or a
+		// conflict-resolution probe) can never read past the entry.
+		slots := len(c) / 8
+		offset := (icolor % slots) * 8
 		return color.RGBA{c[offset], c[offset+1], c[offset+2], opacity}
 	}
-	// fallback fixed palette
-	fallback := [...]color.RGBA{
-		{202, 20, 21, opacity},
-		{1, 42, 108, opacity},
-		{247, 216, 1, opacity},
-		{21, 108, 48, opacity},
-		{116, 163, 243, opacity},
-		{120, 0, 1, opacity},
-		{255, 129, 18, opacity},
-		{109, 0, 205, opacity},
-	}
-	return fallback[icolor%8]
+	return fallbackColors[icolor%len(fallbackColors)]
 }
 
 // BuildPlayerColors returns a map[playerIndex]color.RGBA from parsed players.
 // Mirrors Civ6's jersey conflict resolution: players are assigned in index
-// order, and a player whose primary color is already taken by an earlier
-// player gets its color slot incremented until a free color is found.
+// order, and a player whose color is already taken cycles through its leader's
+// other schemes; if those are all taken, it takes a free generic color so two
+// players never share a color on the map.
 func BuildPlayerColors(players []Player) map[int]color.RGBA {
 	sorted := make([]Player, len(players))
 	copy(sorted, players)
@@ -141,8 +161,17 @@ func BuildPlayerColors(players []Player) map[int]color.RGBA {
 	var used []color.RGBA
 	for _, p := range sorted {
 		c := PlayerColor(p.Leader, p.IColor)
-		for try := 1; try < 8 && colorTaken(used, c); try++ {
-			c = PlayerColor(p.Leader, (p.IColor+try)%8)
+		n := leaderColorSlots(p.Leader)
+		for try := 1; try < n && colorTaken(used, c); try++ {
+			c = PlayerColor(p.Leader, p.IColor+try)
+		}
+		if colorTaken(used, c) {
+			for _, fc := range fallbackColors {
+				if !colorTaken(used, fc) {
+					c = fc
+					break
+				}
+			}
 		}
 		used = append(used, c)
 		m[p.Index] = c
