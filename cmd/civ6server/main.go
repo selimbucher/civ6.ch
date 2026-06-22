@@ -539,8 +539,15 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 			favor = intPtr(ps.DiploFavor)
 		}
 
+		// A player whose human slot flipped to AI but who still controls cities
+		// left the game rather than being eliminated — keep their real score.
+		eliminated := p.Eliminated
+		leftGame := false
+		if p.Eliminated && civ6save.LivingCivilization(state, p.Index) {
+			eliminated, leftGame = false, true
+		}
 		// Eliminated players are recorded as participants but with score 0.
-		if p.Eliminated {
+		if eliminated {
 			score = intPtr(0)
 		}
 
@@ -549,12 +556,12 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 			INSERT INTO game_players (
 				game_id, team, player_index, leader, pseudo_name, score,
 				population, science, culture, food, production, gold, faith, tourism, favor,
-				mining_researched, eliminated, steam_id
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+				mining_researched, eliminated, steam_id, left_game
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 			RETURNING id`,
 			gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
 			population, science, culture, food, production, gold, faith, tourism, favor,
-			miningResearched, p.Eliminated, nullStr(p.SteamID),
+			miningResearched, eliminated, nullStr(p.SteamID), leftGame,
 		).Scan(&gpID)
 		if err != nil {
 			return 0, err

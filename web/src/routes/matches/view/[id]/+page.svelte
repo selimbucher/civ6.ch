@@ -246,7 +246,7 @@
                             <div class="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full {player.winner ? 'bg-font-good' : 'bg-font-bad'}"></div>
 
                             <!-- Portrait -->
-                            <div class="h-11 w-11 rounded-full bg-card-edge overflow-hidden shrink-0 mr-3 {player.eliminated ? 'grayscale opacity-60' : ''}">
+                            <div class="h-11 w-11 rounded-full bg-card-edge overflow-hidden shrink-0 mr-3 {player.eliminated || player.left_game ? 'grayscale opacity-60' : ''}">
                                 {#if leaderPortrait(player.leader)}
                                     <img src={leaderPortrait(player.leader)!} alt=""
                                          class="h-full w-full object-cover"
@@ -268,6 +268,8 @@
                                     {/if}
                                     {#if player.eliminated}
                                         <span class="text-[9px] uppercase tracking-wider px-1.5 py-px rounded-full bg-font-bad/10 text-font-bad border border-font-bad/20 shrink-0">Eliminated</span>
+                                    {:else if player.left_game}
+                                        <span class="text-[9px] uppercase tracking-wider px-1.5 py-px rounded-full bg-font-dimer/10 text-font-dimer border border-font-dimer/20 shrink-0">Left</span>
                                     {/if}
                                 </div>
                                 {#if player.pseudo_name}

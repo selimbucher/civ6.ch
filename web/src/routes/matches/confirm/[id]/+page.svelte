@@ -237,7 +237,7 @@
                                 <div class="flex items-center gap-2.5">
                                     <div class="h-9 w-9 rounded-full bg-card-edge overflow-hidden shrink-0 transition-all duration-150
                                                 {isWinner ? 'ring-2 ring-font-good ring-offset-1 ring-offset-card' : ''}
-                                                {row.eliminated ? 'grayscale opacity-60' : ''}">
+                                                {row.eliminated || row.left_game ? 'grayscale opacity-60' : ''}">
                                         {#if leaderPortrait(row.leader)}
                                             <img src={leaderPortrait(row.leader)} alt=""
                                                  class="h-full w-full object-cover"
@@ -257,6 +257,8 @@
                                             {/if}
                                             {#if row.eliminated}
                                                 <span class="text-[9px] uppercase tracking-wider px-1.5 py-px rounded-full bg-font-bad/10 text-font-bad border border-font-bad/20">Eliminated</span>
+                                            {:else if row.left_game}
+                                                <span class="text-[9px] uppercase tracking-wider px-1.5 py-px rounded-full bg-font-dimer/10 text-font-dimer border border-font-dimer/20">Left</span>
                                             {/if}
                                         </div>
                                     </div>

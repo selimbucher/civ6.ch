@@ -29,7 +29,10 @@ type Player struct {
 	// Team is the save's shared-victory team id. Players sharing a Team win
 	// together; in FFA each player has a unique Team (alliances do not change it).
 	Team int
-	// Eliminated is true for major players no longer alive (typePlayer != 3).
+	// Eliminated is true for major players whose slot is no longer a live human
+	// (typePlayer != 3) — this covers both genuinely eliminated civs and humans
+	// who left the game and were taken over by the AI. Use LivingCivilization to
+	// tell the two apart: a player who left still controls cities.
 	Eliminated bool
 	// SteamID is the stable SteamID64 extracted from the "persona@steamid64"
 	// packet, used to match a save slot to a registered player.
@@ -195,4 +198,16 @@ func ParsePlayers(data []byte) []Player {
 	}
 
 	return players
+}
+
+// LivingCivilization reports whether player index still controls at least one
+// city in the parsed state. Combined with Player.Eliminated this distinguishes a
+// player who *left* the game (slot taken over by the AI but the civ is alive,
+// cities > 0) from one who was genuinely *eliminated* (no cities left).
+func LivingCivilization(state *GameState, index int) bool {
+	if state == nil || index < 0 || index >= len(state.Players) {
+		return false
+	}
+	ps := state.Players[index]
+	return ps != nil && len(ps.Cities) > 0
 }

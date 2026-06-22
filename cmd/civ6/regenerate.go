@@ -153,8 +153,15 @@ func regenerateGame(ctx context.Context, gameID int) {
 			tourism = intPtr(roundToInt(ps.Tourism))
 			favor = intPtr(ps.DiploFavor)
 		}
+		// A player whose human slot flipped to AI but who still controls cities
+		// left the game rather than being eliminated — keep their real score.
+		eliminated := p.Eliminated
+		leftGame := false
+		if p.Eliminated && civ6save.LivingCivilization(state, p.Index) {
+			eliminated, leftGame = false, true
+		}
 		// Eliminated players are recorded as participants but with score 0.
-		if p.Eliminated {
+		if eliminated {
 			score = intPtr(0)
 		}
 
@@ -166,12 +173,12 @@ func regenerateGame(ctx context.Context, gameID int) {
 					team=$1, leader=$2, pseudo_name=$3, score=$4,
 					population=$5, science=$6, culture=$7, food=$8, production=$9,
 					gold=$10, faith=$11, tourism=$12, favor=$13,
-					mining_researched=$14, eliminated=$15, steam_id=$16
-				WHERE id=$17`,
+					mining_researched=$14, eliminated=$15, steam_id=$16, left_game=$17
+				WHERE id=$18`,
 				int16(p.Team), leader, nullStr(p.Pseudo), score,
 				population, science, culture, food, production,
 				gold, faith, tourism, favor,
-				miningResearched, p.Eliminated, nullStr(p.SteamID), gpID,
+				miningResearched, eliminated, nullStr(p.SteamID), leftGame, gpID,
 			)
 			if err != nil {
 				log.Fatalf("update game_players %d: %v", gpID, err)
@@ -184,12 +191,12 @@ func regenerateGame(ctx context.Context, gameID int) {
 				INSERT INTO game_players (
 					game_id, team, player_index, leader, pseudo_name, score,
 					population, science, culture, food, production, gold, faith, tourism, favor,
-					mining_researched, eliminated, steam_id
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+					mining_researched, eliminated, steam_id, left_game
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 				RETURNING id`,
 				gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
 				population, science, culture, food, production, gold, faith, tourism, favor,
-				miningResearched, p.Eliminated, nullStr(p.SteamID),
+				miningResearched, eliminated, nullStr(p.SteamID), leftGame,
 			).Scan(&gpID)
 			if err != nil {
 				log.Fatalf("insert game_players index=%d: %v", p.Index, err)

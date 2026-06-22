@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     if (!game.tmp) redirect(303, `/matches/view/${id}`);
 
     const rows = await sql`
-        SELECT gp.id, gp.team, gp.eliminated, gp.leader, gp.pseudo_name, gp.score,
+        SELECT gp.id, gp.team, gp.eliminated, gp.left_game, gp.leader, gp.pseudo_name, gp.score,
                gp.population, gp.science, gp.culture, gp.food, gp.production,
                gp.gold, gp.faith, gp.tourism, gp.favor,
                psi.player_id AS matched_player_id,
