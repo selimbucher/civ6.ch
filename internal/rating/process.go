@@ -24,11 +24,11 @@ const (
 	// outnumbers the smallest team, scaled by the size ratio (len/smallest − 1)
 	// rather than the raw player difference: outnumbering 2:1 (2v1) is a far
 	// bigger edge than 3:2, even though both add one player. A team with twice
-	// the players gets the full bonus; 1.5× gets half. At 100, a 2:1 advantage
-	// ≈ a 64% expected win. This replaces the old sum-of-ratings handicap, which
+	// the players gets the full bonus; 1.5× gets half. At 40, a 2:1 advantage
+	// ≈ a 56% expected win. This replaces the old sum-of-ratings handicap, which
 	// inflated a larger team's rating by ~1500 per extra player (a near-certain
 	// win) and so punished bigger teams far too harshly.
-	teamSizeBonus = 100.0
+	teamSizeBonus = 40.0
 )
 
 type gameRow struct {
