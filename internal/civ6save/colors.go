@@ -168,31 +168,48 @@ func PlayerColor(leader string, icolor int) color.RGBA {
 }
 
 // BuildPlayerColors assigns each player a map-overlay color, mirroring Civ6's
-// jersey system: processing players in slot order, each takes the first of its
-// leader's jerseys (then the 28 standard colors, in order) whose hue family no
-// earlier player has claimed.
+// jersey system. Players are processed in slot order. A player first tries its
+// leader's four jerseys, keeping the first whose *exact* color no earlier player
+// took — so two players can share a hue in different shades (e.g. navy and light
+// blue). If all four jerseys are taken it dodges into the 28 standard colors, in
+// order, taking the first whose *hue family* is still free — so Civ6 never hands
+// out a second red/orange/etc. as a fallback.
 func BuildPlayerColors(players []Player) map[int]color.RGBA {
 	sorted := make([]Player, len(players))
 	copy(sorted, players)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Index < sorted[j].Index })
 
-	m := make(map[int]color.RGBA, len(players))
+	type rgb struct{ r, g, b uint8 }
+	usedExact := map[rgb]bool{}
 	usedFamilies := map[string]bool{}
-	for _, p := range sorted {
-		// Candidate colors in preference order: the leader's jerseys, then the
-		// full standard pool as the dodge fallback.
-		candidates := leaderJerseys(p.Leader)
-		for _, sc := range standardColors {
-			candidates = append(candidates, color.RGBA{sc.r, sc.g, sc.b, opacity})
-		}
 
-		chosen := candidates[0]
-		for _, c := range candidates {
-			if fam := hueFamily(c); fam == "" || !usedFamilies[fam] {
-				chosen = c
+	m := make(map[int]color.RGBA, len(players))
+	for _, p := range sorted {
+		var chosen color.RGBA
+		picked := false
+
+		// 1) The leader's own jerseys: first whose exact color is free.
+		for _, j := range leaderJerseys(p.Leader) {
+			if !usedExact[rgb{j.R, j.G, j.B}] {
+				chosen, picked = j, true
 				break
 			}
 		}
+		// 2) Dodge into the standard pool: first whose hue family is free.
+		if !picked {
+			for _, sc := range standardColors {
+				if !usedFamilies[sc.family] {
+					chosen, picked = color.RGBA{sc.r, sc.g, sc.b, opacity}, true
+					break
+				}
+			}
+		}
+		// 3) Everything taken (very crowded game): fall back to the primary.
+		if !picked {
+			chosen = PlayerColor(p.Leader, 0)
+		}
+
+		usedExact[rgb{chosen.R, chosen.G, chosen.B}] = true
 		if fam := hueFamily(chosen); fam != "" {
 			usedFamilies[fam] = true
 		}
