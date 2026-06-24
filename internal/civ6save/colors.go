@@ -91,8 +91,8 @@ var leaderColors = map[uint32][32]uint8{
 
 	// Modded leaders (not in the base game data; colors approximated from
 	// their in-game appearance).
-	0xd5551689: {0, 79, 206, 255, 249, 249, 249, 255, 249, 249, 249, 255, 0, 79, 206, 255, 1, 42, 108, 255, 249, 249, 249, 255, 116, 163, 243, 255, 1, 42, 108, 255},   // LEADER_MER_THEODORIC
-	0xcf798e2b: {202, 20, 21, 255, 249, 249, 249, 255, 249, 249, 249, 255, 202, 20, 21, 255, 120, 0, 1, 255, 234, 225, 157, 255, 229, 117, 116, 255, 120, 0, 1, 255},   // LEADER_JFD_STANISLAW
+	0xd5551689: {0, 79, 206, 255, 249, 249, 249, 255, 249, 249, 249, 255, 0, 79, 206, 255, 1, 42, 108, 255, 249, 249, 249, 255, 116, 163, 243, 255, 1, 42, 108, 255}, // LEADER_MER_THEODORIC
+	0xcf798e2b: {202, 20, 21, 255, 249, 249, 249, 255, 249, 249, 249, 255, 202, 20, 21, 255, 120, 0, 1, 255, 234, 225, 157, 255, 229, 117, 116, 255, 120, 0, 1, 255}, // LEADER_JFD_STANISLAW
 }
 
 // leaderCRC computes the Civ6 CRC32 of a leader string: ^crc32(s).
@@ -100,90 +100,103 @@ func leaderCRC(s string) uint32 {
 	return ^crc32.ChecksumIEEE([]byte(s))
 }
 
-// fallbackColors is the generic palette used both for leaders missing from the
-// color table and to break collisions when a leader's own schemes are all taken.
-var fallbackColors = [...]color.RGBA{
-	{202, 20, 21, opacity},   // red
-	{1, 42, 108, opacity},    // blue
-	{247, 216, 1, opacity},   // yellow
-	{21, 108, 48, opacity},   // green
-	{116, 163, 243, opacity}, // light blue
-	{120, 0, 1, opacity},     // dark red
-	{255, 129, 18, opacity},  // orange
-	{109, 0, 205, opacity},   // purple
+// standardColor is one of Civ6's 28 PlayerStandardColors (from the game's
+// Base/Assets/UI/Colors/PlayerStandardColors.xml): a hue family plus its RGB.
+type standardColor struct {
+	family  string
+	r, g, b uint8
 }
 
-// leaderColorSlots returns how many distinct color schemes a leader has: one
-// per 8-byte (primary+secondary RGBA) slot in its table entry, or the full
-// generic palette for leaders not in the table.
-func leaderColorSlots(leader string) int {
+// standardColors lists the 28 jersey colors in the game's own order. Civ6's
+// jersey resolution falls back to this pool, in order, when all of a leader's
+// own jerseys conflict — which is why a dodged player lands on orange (after the
+// reds) rather than some other colour.
+var standardColors = []standardColor{
+	{"RED", 229, 117, 116}, {"RED", 202, 20, 21}, {"RED", 120, 0, 1},
+	{"ORANGE", 255, 178, 60}, {"ORANGE", 255, 129, 18}, {"ORANGE", 120, 61, 2},
+	{"YELLOW", 234, 225, 157}, {"YELLOW", 247, 216, 1}, {"YELLOW", 134, 114, 2},
+	{"GREEN", 121, 224, 119}, {"GREEN", 97, 191, 34}, {"GREEN", 21, 108, 48},
+	{"AQUA", 125, 236, 227}, {"AQUA", 0, 192, 155}, {"AQUA", 1, 79, 81},
+	{"BLUE", 116, 163, 243}, {"BLUE", 0, 79, 206}, {"BLUE", 1, 42, 108},
+	{"PURPLE", 183, 128, 230}, {"PURPLE", 109, 0, 205}, {"PURPLE", 55, 0, 101},
+	{"MAGENTA", 255, 153, 255}, {"MAGENTA", 255, 0, 255}, {"MAGENTA", 117, 0, 115},
+	{"WHITE", 249, 249, 249}, {"WHITE", 83, 83, 83}, {"WHITE", 174, 174, 174}, {"WHITE", 24, 24, 24},
+}
+
+// hueFamily returns the Civ6 hue family ("RED", "BLUE", …) of a color, or "" if
+// it is not one of the 28 standard colors. Two players are considered to
+// conflict when they share a hue family — Civ6 won't hand out two reds, etc.
+func hueFamily(c color.RGBA) string {
+	for _, sc := range standardColors {
+		if sc.r == c.R && sc.g == c.G && sc.b == c.B {
+			return sc.family
+		}
+	}
+	return ""
+}
+
+// leaderJerseys returns a leader's jersey primary colors in order (4 for a known
+// leader, none for an unknown/modded one). Each table slot is 8 bytes (primary
+// RGBA + secondary RGBA); the map overlay uses the primary RGB.
+func leaderJerseys(leader string) []color.RGBA {
 	if idx := strings.LastIndex(leader, "::"); idx != -1 {
 		leader = leader[idx+2:]
 	}
-	if c, ok := leaderColors[leaderCRC(leader)]; ok {
-		return len(c) / 8
+	c, ok := leaderColors[leaderCRC(leader)]
+	if !ok {
+		return nil
 	}
-	return len(fallbackColors)
+	out := make([]color.RGBA, 0, len(c)/8)
+	for o := 0; o+3 <= len(c); o += 8 {
+		out = append(out, color.RGBA{c[o], c[o+1], c[o+2], opacity})
+	}
+	return out
 }
 
-// PlayerColor returns the primary overlay color for a leader+iColor combination.
-// Falls back to a fixed palette if the leader is not in the color table.
+// PlayerColor returns a leader's iColor jersey primary, with no conflict
+// resolution. Unknown leaders draw from the standard pool. Use BuildPlayerColors
+// for the actual per-game assignment.
 func PlayerColor(leader string, icolor int) color.RGBA {
-	// strip "Players:Expansion2_Players::" prefix if present
-	if idx := strings.LastIndex(leader, "::"); idx != -1 {
-		leader = leader[idx+2:]
-	}
 	if icolor < 0 {
 		icolor = 0
 	}
-	if c, ok := leaderColors[leaderCRC(leader)]; ok {
-		// Each slot is 8 bytes: primary RGBA + secondary RGBA. The overlay uses
-		// the primary RGB. Wrap by slot count so an out-of-range iColor (or a
-		// conflict-resolution probe) can never read past the entry.
-		slots := len(c) / 8
-		offset := (icolor % slots) * 8
-		return color.RGBA{c[offset], c[offset+1], c[offset+2], opacity}
+	if js := leaderJerseys(leader); len(js) > 0 {
+		return js[icolor%len(js)]
 	}
-	return fallbackColors[icolor%len(fallbackColors)]
+	sc := standardColors[icolor%len(standardColors)]
+	return color.RGBA{sc.r, sc.g, sc.b, opacity}
 }
 
-// BuildPlayerColors returns a map[playerIndex]color.RGBA from parsed players.
-// Mirrors Civ6's jersey conflict resolution: players are assigned in index
-// order, and a player whose color is already taken cycles through its leader's
-// other schemes; if those are all taken, it takes a free generic color so two
-// players never share a color on the map.
+// BuildPlayerColors assigns each player a map-overlay color, mirroring Civ6's
+// jersey system: processing players in slot order, each takes the first of its
+// leader's jerseys (then the 28 standard colors, in order) whose hue family no
+// earlier player has claimed.
 func BuildPlayerColors(players []Player) map[int]color.RGBA {
 	sorted := make([]Player, len(players))
 	copy(sorted, players)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Index < sorted[j].Index })
 
 	m := make(map[int]color.RGBA, len(players))
-	var used []color.RGBA
+	usedFamilies := map[string]bool{}
 	for _, p := range sorted {
-		c := PlayerColor(p.Leader, p.IColor)
-		n := leaderColorSlots(p.Leader)
-		for try := 1; try < n && colorTaken(used, c); try++ {
-			c = PlayerColor(p.Leader, p.IColor+try)
+		// Candidate colors in preference order: the leader's jerseys, then the
+		// full standard pool as the dodge fallback.
+		candidates := leaderJerseys(p.Leader)
+		for _, sc := range standardColors {
+			candidates = append(candidates, color.RGBA{sc.r, sc.g, sc.b, opacity})
 		}
-		if colorTaken(used, c) {
-			for _, fc := range fallbackColors {
-				if !colorTaken(used, fc) {
-					c = fc
-					break
-				}
+
+		chosen := candidates[0]
+		for _, c := range candidates {
+			if fam := hueFamily(c); fam == "" || !usedFamilies[fam] {
+				chosen = c
+				break
 			}
 		}
-		used = append(used, c)
-		m[p.Index] = c
+		if fam := hueFamily(chosen); fam != "" {
+			usedFamilies[fam] = true
+		}
+		m[p.Index] = chosen
 	}
 	return m
-}
-
-func colorTaken(used []color.RGBA, c color.RGBA) bool {
-	for _, u := range used {
-		if u.R == c.R && u.G == c.G && u.B == c.B {
-			return true
-		}
-	}
-	return false
 }
