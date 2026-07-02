@@ -1,7 +1,6 @@
 package civ6save
 
 import (
-	"fmt"
 	"image/color"
 	"strings"
 )
@@ -43,7 +42,6 @@ func minorCivSlots(data []byte) map[int]string {
 				all = append(all, s)
 			}
 		}
-		fmt.Printf("DEBUG slot=%d strings=%q\n", b.iPlayer, all)
 		for _, s := range all {
 			if strings.Contains(s, "MINOR") || strings.Contains(s, "CITY_STATE") {
 				out[b.iPlayer] = s
@@ -54,11 +52,11 @@ func minorCivSlots(data []byte) map[int]string {
 	return out
 }
 
-// CityStateColors maps each city-state's player-slot to the colour of its type.
+// CityStateColors maps each city-state's player-slot to the colour of its type
+// (trade yellow, science blue, …). The save only carries the leader token (see
+// minorCivSlots); resolving a token to its type needs a data table that hasn't
+// been built yet, so this returns nil and the renderer draws minor civs with
+// its neutral border instead of risking wrong colours.
 func CityStateColors(data []byte) map[int]color.RGBA {
-	slots := minorCivSlots(data)
-	for idx, s := range slots {
-		fmt.Printf("DEBUG citystate slot=%d str=%q\n", idx, s)
-	}
 	return nil
 }
