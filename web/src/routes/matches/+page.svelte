@@ -7,6 +7,7 @@
   import score from '$lib/assets/icons/vcondition/score.png';
   import capitulation from '$lib/assets/icons/vcondition/capitulation.png';
   import { Swords, Map, AlertCircle } from '@lucide/svelte';
+  import PageHeader from '$lib/PageHeader.svelte';
 
   let { data } = $props();
 
@@ -102,6 +103,14 @@
     ])) as Record<Tab, number>
   );
 </script>
+
+<div class="mx-3 md:mx-12 mb-5">
+  <PageHeader title="Matches" subtitle="Every conquest, collapse and questionable alliance — newest first.">
+    {#snippet icon()}
+      <Swords strokeWidth={1.5} class="h-10 w-10" />
+    {/snippet}
+  </PageHeader>
+</div>
 
 <!-- Awaiting Confirmation -->
 {#if data.unconfirmed && data.unconfirmed.length > 0}

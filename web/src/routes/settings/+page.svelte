@@ -49,7 +49,7 @@
     </svg>
 {/snippet}
 
-{#snippet head(Icon: any, title: string)}
+{#snippet cardHead(Icon: any, title: string)}
     <div class="flex items-center gap-2">
         <Icon class="h-5 w-5 text-primary shrink-0" strokeWidth={1.75} />
         <span class="font-fancy text-lg font-semibold text-font-clear leading-none">{title}</span>
@@ -87,7 +87,7 @@
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <div class="p-6 flex flex-col gap-5">
-            {@render head(ImageIcon, 'Profile Picture')}
+            {@render cardHead(ImageIcon, 'Profile Picture')}
             {#if form?.avatarOk}{@render banner(true, 'Profile picture updated.')}{/if}
             {#if form?.avatarError}{@render banner(false, form.avatarError)}{/if}
 
@@ -146,7 +146,7 @@
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <form method="POST" action="?/profile" use:enhance class="p-6 flex flex-col gap-5">
-            {@render head(User, 'Profile')}
+            {@render cardHead(User, 'Profile')}
             {#if form?.profileOk}{@render banner(true, 'Profile updated.')}{/if}
             {#if form?.profileError}{@render banner(false, form.profileError)}{/if}
 
@@ -168,7 +168,7 @@
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
         <div class="h-[3px] bg-gradient-primary"></div>
         <div class="p-6 flex flex-col gap-5">
-            {@render head(KeyRound, 'Security')}
+            {@render cardHead(KeyRound, 'Security')}
             {#if form?.passwordOk}{@render banner(true, 'Password changed.')}{/if}
             {#if form?.passwordError}{@render banner(false, form.passwordError)}{/if}
             {#if form?.signedOut}{@render banner(true, 'Signed out of all other devices.')}{/if}
@@ -203,7 +203,7 @@
         <div class="h-[3px] bg-gradient-primary"></div>
         <div class="p-6 flex flex-col gap-5">
             <div class="flex flex-col gap-1">
-                {@render head(Megaphone, 'Diplomacy')}
+                {@render cardHead(Megaphone, 'Diplomacy')}
                 <p class="text-sm text-font-dimer">
                     Publicly denounce a rival. They'll wear a frowny face on their profile — and hear about it.
                 </p>

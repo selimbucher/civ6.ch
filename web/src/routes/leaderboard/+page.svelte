@@ -2,6 +2,8 @@
   import { goto } from '$app/navigation';
   import { Flame, Medal, Trophy } from '@lucide/svelte';
   import Avatar from '$lib/Avatar.svelte';
+  import PageHeader from '$lib/PageHeader.svelte';
+  import Tooltip from '$lib/Tooltip.svelte';
 
   const tabs = ['FFA', 'Teams', '1v1'];
   const categoryMap: Record<string, string> = {
@@ -33,10 +35,17 @@
   ];
 </script>
 
-<div class="px-4 md:px-12 pb-12 pt-2 flex flex-col gap-6 w-full flex-1">
+<div class="px-4 md:px-12 pb-12 pt-2 flex flex-col gap-6 w-full">
+
+  <PageHeader title="Leaderboard" subtitle="Glory, shame, and the cold arithmetic of Glicko ratings.">
+    {#snippet icon()}
+      <Trophy strokeWidth={1.5} class="h-10 w-10" />
+    {/snippet}
+  </PageHeader>
 
   <!-- ── Podium ───────────────────────────────────────────────────────── -->
-  <div class="flex items-end justify-center gap-6">
+  <div class="flex justify-center pt-2">
+   <div class="flex items-end justify-center gap-6 border-b border-card-edge px-2">
     {#each PODIUM as { idx, color, blockH, portraitPx, letterCls }}
       {@const player = data.overall[idx]}
       {#if player}
@@ -79,10 +88,11 @@
         </div>
       {/if}
     {/each}
+   </div>
   </div>
 
   <!-- ── Tables ───────────────────────────────────────────────────────── -->
-  <div class="flex flex-col md:flex-row md:items-start gap-4 flex-1">
+  <div class="flex flex-col md:flex-row md:items-start gap-4">
 
   <!-- ── Overall (always visible, left) ──────────────────────────────── -->
   <div class="flex-1 rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
@@ -92,7 +102,11 @@
           <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-center px-4 py-2.5 w-10"></th>
           <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-left px-3 py-2.5">Player</th>
           <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-right px-3 py-2.5 w-24">Rating</th>
-          <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-center px-4 py-2.5 w-16">WR</th>
+          <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-center px-4 py-2.5 w-16">
+            <Tooltip label="Win rate across rated games" placement="bottom" align="right">
+              {#snippet children()}<span class="cursor-help">WR</span>{/snippet}
+            </Tooltip>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -170,7 +184,11 @@
           <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-center px-4 py-2.5 w-10">#</th>
           <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-left px-3 py-2.5">Player</th>
           <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-right px-3 py-2.5 w-24">Rating</th>
-          <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-center px-4 py-2.5 w-16">WR</th>
+          <th class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest text-center px-4 py-2.5 w-16">
+            <Tooltip label="Win rate across rated games" placement="bottom" align="right">
+              {#snippet children()}<span class="cursor-help">WR</span>{/snippet}
+            </Tooltip>
+          </th>
         </tr>
       </thead>
       <tbody>

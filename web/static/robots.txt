@@ -1,3 +1,7 @@
-# allow crawling everything by default
+# Even barbarians are welcome, provided they behave.
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /settings
+Disallow: /matches/add
+Disallow: /login
+Disallow: /logout

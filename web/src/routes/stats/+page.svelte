@@ -17,6 +17,7 @@
 
 
     } from '@lucide/svelte';
+    import PageHeader from '$lib/PageHeader.svelte';
 
     const leaderAssets = import.meta.glob<{ default: string }>(
         '$lib/assets/icons/leaders/*.webp',
@@ -188,21 +189,14 @@
 <div class="mx-4 md:mx-12 mb-12 flex flex-col gap-6">
 
     <!-- ── Page Header ──────────────────────────────────────────────────── -->
-    <div class="relative rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-0.75 bg-gradient-primary"></div>
-        <div class="px-10 py-8 flex items-center justify-between">
-            <div>
-                <h1 class="font-fancy text-4xl font-bold text-font-clear tracking-wide"
-                    style="text-shadow: 1px 1px 0px var(--color-primary-shadow);">
-                    Hall of Records
-                </h1>
-                <p class="text-font-dimer mt-1 text-sm">
-                    A rigorous scientific analysis of competitive Civilization VI performance.
-                </p>
-            </div>
-            <Star strokeWidth={1.5} class="h-10 w-10 text-primary opacity-100 shrink-0" />
-        </div>
-    </div>
+    <PageHeader
+        title="Hall of Records"
+        subtitle="A rigorous scientific analysis of competitive Civilization VI performance."
+    >
+        {#snippet icon()}
+            <Star strokeWidth={1.5} class="h-10 w-10" />
+        {/snippet}
+    </PageHeader>
 
     <!-- ── Global Stats ─────────────────────────────────────────────────── -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

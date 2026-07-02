@@ -20,8 +20,10 @@
     import favorIcon from '$lib/assets/icons/yields/favor.png';
 
     import cityIcon from '$lib/assets/icons/emblems/city.png';
+    import religionGeneric from '$lib/assets/icons/religions/Religion_Generic.png';
 
     import { CloudDownload, MapPin, Map, Gauge, Clock, Layers, Swords } from '@lucide/svelte';
+    import Tooltip from '$lib/Tooltip.svelte';
 
     import type { PageData } from './$types';
 
@@ -56,6 +58,49 @@
             k.toLowerCase().includes(`/${slug}.png`) || k.toLowerCase().includes(`_${slug}.png`)
         );
         return key ? religionAssets[key].default : null;
+    }
+    // The save records each religion's real symbol (its RELIGION_* type), stored
+    // per city as religion_icon (e.g. "Custom10"). Resolve that to its distinct
+    // glyph so every religion looks different instead of one generic icon.
+    function religionIconByKey(key: string | null | undefined): string | null {
+        if (!key) return null;
+        // Prefer the solid "Pressure" silhouette — it tints cleanly into a bold
+        // coloured symbol, unlike the thin outline of the base icon.
+        const want = `/religion_pressure_${key}.png`.toLowerCase();
+        const k = Object.keys(religionAssets).find((a) => a.toLowerCase().endsWith(want));
+        return k ? religionAssets[k].default : null;
+    }
+    // Prefer the parsed symbol; fall back to name-matching, then the generic glyph
+    // (covers rows parsed before religion_icon existed).
+    function cityReligionIcon(city: any): string | null {
+        return (
+            religionIconByKey(city.religion_icon) ??
+            (city.religion ? religionIcon(city.religion) : null) ??
+            (city.religion ? religionGeneric : null)
+        );
+    }
+    // The custom name, or — for the pre-baked religions (Islam, Catholicism, …)
+    // which can't be renamed and so carry no custom name — the religion's own
+    // name, which equals its icon key.
+    function religionName(city: any): string {
+        if (city.religion) return city.religion;
+        const k = city.religion_icon;
+        if (k && !String(k).startsWith('Custom') && k !== 'Generic') return k;
+        return '';
+    }
+    // The religion a player founded (if any), resolved to symbol + name + colour.
+    function foundedReligion(
+        player: any
+    ): { icon: string | null; name: string; color: string } | null {
+        const key = player.founded_religion_icon;
+        if (!key && !player.founded_religion) return null;
+        let name = player.founded_religion || '';
+        if (!name && key && !String(key).startsWith('Custom') && key !== 'Generic') name = key;
+        return {
+            icon: religionIconByKey(key),
+            name,
+            color: player.founded_religion_color ?? 'var(--color-font-dimer)'
+        };
     }
 
     function leaderPortrait(leader: string | null): string | null {
@@ -194,6 +239,39 @@
         { icon: religiousv,   allowed: game.allow_religious  ?? true, label: 'Religious' },
         { icon: diplomaticv,  allowed: game.allow_diplomatic ?? true, label: 'Diplomatic' },
     ]);
+
+    // One source of truth for every yield column, shared by the Player-Yields
+    // table and the per-city tooltips so the two stay visually consistent.
+    type YieldCol = { key: string; icon: string; label: string; cls: string; h: string };
+    const yieldCols: YieldCol[] = [
+        { key: 'score',      icon: scoreIcon,      label: 'Score',      cls: 'text-score',      h: 'h-4' },
+        { key: 'population', icon: populationIcon, label: 'Population', cls: 'text-font-clear',  h: 'h-4' },
+        { key: 'science',    icon: scienceIcon,    label: 'Science',    cls: 'text-science',     h: 'h-4' },
+        { key: 'culture',    icon: cultureIcon,    label: 'Culture',    cls: 'text-culture',     h: 'h-4' },
+        { key: 'food',       icon: foodIcon,       label: 'Food',       cls: 'text-food',        h: 'h-4' },
+        { key: 'production', icon: productionIcon, label: 'Production', cls: 'text-production',   h: 'h-4' },
+        { key: 'gold',       icon: goldIcon,       label: 'Gold',       cls: 'text-gold',        h: 'h-4' },
+        { key: 'faith',      icon: faithIcon,      label: 'Faith',      cls: 'text-faith',       h: 'h-4' },
+        { key: 'tourism',    icon: tourismIcon,    label: 'Tourism',    cls: 'text-production',   h: 'h-3.5' },
+        { key: 'favor',      icon: favorIcon,      label: 'Favor',      cls: 'text-diplo',        h: 'h-4' },
+    ];
+    // Per-column leader, so the eye can jump to who topped each yield.
+    const yieldLeaders = $derived.by(() => {
+        const best: Record<string, number> = {};
+        for (const col of yieldCols) {
+            let max = -Infinity;
+            for (const p of game.players) {
+                const v = (p as any)[col.key];
+                if (v != null && v > max) max = v;
+            }
+            best[col.key] = max;
+        }
+        return best;
+    });
+    // Yields shown inside a city's hover card (no Score/Tourism/Favor at city level).
+    const cityYieldCols = yieldCols.filter((c) =>
+        ['population', 'science', 'culture', 'food', 'production', 'gold', 'faith'].includes(c.key)
+    );
 </script>
 
 <div class="mx-3 md:mx-12 mb-12 flex flex-col gap-4">
@@ -387,160 +465,152 @@
         </div>
     </div>
 
-    <!-- ── Player Yields ─────────────────────────────────────────────────── -->
-    {#if hasYields}
+    <!-- ── Empires: each player's totals, founded religion and cities ──────── -->
+    {#if hasYields || hasCities}
     <div class="flex items-center gap-4">
         <div class="h-px flex-1 bg-card-edge"></div>
-        <span class="font-fancy text-xs tracking-widest uppercase text-font-dimest">Player Yields</span>
+        <span class="font-fancy text-xs tracking-widest uppercase text-font-dimest">Empires</span>
         <div class="h-px flex-1 bg-card-edge"></div>
     </div>
-    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
-        <table class="w-full">
-            <thead>
-                <tr class="border-b border-card-edge">
-                    <th class="w-10"></th>
-                    <th class="text-left px-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Player</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Score</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Pop</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Sci</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Cult</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Food</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Prod</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Gold</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Faith</th>
-                    <th class="text-right pr-2 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Tour</th>
-                    <th class="text-right pr-3 py-2 font-fancy text-[9px] tracking-widest uppercase text-font-dimest">Favor</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each game.players as player}
-                    <tr class="relative not-last:border-b border-card-edge hover:bg-select transition-colors duration-100">
-                        <td class="py-2 pl-2 pr-0">
-                            <div class="h-7 w-7 rounded-full bg-card-edge overflow-hidden">
-                                {#if leaderPortrait(player.leader)}
-                                    <img src={leaderPortrait(player.leader)!} alt=""
-                                         class="h-full w-full object-cover"
-                                         onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-                                {:else if player.leader}
-                                    <div class="h-full w-full flex items-center justify-center text-font-dimest text-[9px] font-bold select-none">?</div>
-                                {/if}
-                            </div>
-                        </td>
-                        <td class="px-2 py-2">
-                            <a href="/profile/{player.player_id}"
-                               class="{player.winner ? 'text-font-clear font-semibold' : 'text-font-dim'} hover:text-font-clear transition-colors duration-150 text-xs">
-                                {player.name}
-                                {#if player.winner}
-                                    <img src={universalv} alt="" class="ml-0.5 inline-block h-3.5 opacity-75 mb-[0.05rem]" />
-                                {/if}
-                            </a>
-                            {#if player.pseudo_name}
-                                <div class="text-[10px] text-font-dimest mt-0.5">{player.pseudo_name}</div>
+    <div class="flex flex-col gap-4">
+        {#each game.players as player}
+            {@const founded = foundedReligion(player)}
+            {@const hasStats = yieldCols.some((c) => (player as any)[c.key] != null)}
+            <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken">
+                <!-- Player group header -->
+                <div class="flex items-center gap-3 px-5 py-3 border-b border-card-edge bg-zebra-2 rounded-t-2xl">
+                    <div class="h-10 w-10 rounded-full bg-card-edge overflow-hidden shrink-0">
+                        {#if leaderPortrait(player.leader)}
+                            <img src={leaderPortrait(player.leader)!} alt=""
+                                 class="h-full w-full object-cover"
+                                 onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                        {:else if player.leader}
+                            <div class="h-full w-full flex items-center justify-center text-font-dimest text-[10px] font-bold select-none">?</div>
+                        {/if}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <a href="/profile/{player.player_id}"
+                           class="text-sm font-semibold {player.winner ? 'text-font-clear' : 'text-font-dim'} hover:text-primary transition-colors duration-150">
+                            {player.name}
+                            {#if player.winner}
+                                <img src={universalv} alt="" class="inline h-4 opacity-70 ml-1 mb-0.5" />
                             {/if}
-                        </td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={scoreIcon}      alt="" class="h-4 shrink-0" /><span class="text-score       text-xs font-bold tabular-nums">{fmt(player.score)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={populationIcon} alt="" class="h-4 shrink-0" /><span class="text-font-clear  text-xs font-bold tabular-nums">{fmt(player.population)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={scienceIcon}    alt="" class="h-4 shrink-0" /><span class="text-science     text-xs font-bold tabular-nums">{fmt(player.science)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={cultureIcon}    alt="" class="h-4 shrink-0" /><span class="text-culture     text-xs font-bold tabular-nums">{fmt(player.culture)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={foodIcon}       alt="" class="h-4 shrink-0" /><span class="text-food        text-xs font-bold tabular-nums">{fmt(player.food)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={productionIcon} alt="" class="h-4 shrink-0" /><span class="text-production  text-xs font-bold tabular-nums">{fmt(player.production)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={goldIcon}       alt="" class="h-4 shrink-0" /><span class="text-gold        text-xs font-bold tabular-nums">{fmt(player.gold)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={faithIcon}      alt="" class="h-4 shrink-0" /><span class="text-faith       text-xs font-bold tabular-nums">{fmt(player.faith)}</span></span></td>
-                        <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={tourismIcon}    alt="" class="h-3.5 shrink-0" /><span class="text-production  text-xs font-bold tabular-nums">{fmt(player.tourism)}</span></span></td>
-                        <td class="pr-3 py-2"><span class="flex items-center justify-end gap-0.5"><img src={favorIcon}      alt="" class="h-4 shrink-0" /><span class="text-diplo       text-xs font-bold tabular-nums">{fmt(player.favor)}</span></span></td>
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
-    </div>
+                        </a>
+                        {#if player.pseudo_name}
+                            <div class="text-xs text-font-dimest mt-0.5">{player.pseudo_name}</div>
+                        {/if}
+                    </div>
+                    {#if founded}
+                        <span class="hidden items-center gap-1 max-w-[16rem] shrink-0 sm:flex" title={founded.name ? `Founded ${founded.name}` : 'Founded a religion'}>
+                            {#if founded.icon}
+                                <span class="inline-block h-7 w-7 shrink-0"
+                                      style="background-color:{founded.color};-webkit-mask:url({founded.icon}) center/contain no-repeat;mask:url({founded.icon}) center/contain no-repeat;"></span>
+                            {/if}
+                            <span class="truncate text-sm italic" style="color:{founded.color};">{founded.name || '—'}</span>
+                        </span>
+                    {/if}
+                    <span class="font-fancy text-[10px] font-semibold tracking-widest uppercase text-font-dimest shrink-0 {founded ? 'ml-5' : ''}">
+                        {player.cities.length} {player.cities.length === 1 ? 'city' : 'cities'}
+                    </span>
+                </div>
 
-    {/if}
+                {#if hasStats}
+                    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3 {player.cities.length > 0 ? 'border-b border-card-edge' : ''}">
+                        {#each yieldCols as col}
+                            {@const v = (player as any)[col.key]}
+                            {@const lead = v != null && v === yieldLeaders[col.key]}
+                            <span class="flex items-center gap-1.5" title={col.label}>
+                                <img src={col.icon} alt={col.label} class="{col.h}" />
+                                <span class="{col.cls} text-sm font-bold tabular-nums transition-opacity duration-100 {v == null ? 'opacity-30' : lead ? 'opacity-100' : 'opacity-55'}">{fmt(v)}</span>
+                            </span>
+                        {/each}
+                    </div>
+                {/if}
 
-    <!-- ── Cities ───────────────────────────────────────────────────────── -->
-    {#if hasCities}
-    <div class="flex items-center gap-4">
-        <div class="h-px flex-1 bg-card-edge"></div>
-        <span class="font-fancy text-xs tracking-widest uppercase text-font-dimest">Cities</span>
-        <div class="h-px flex-1 bg-card-edge"></div>
-    </div>
-    <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">
-        <table class="w-full">
-            <tbody>
-                {#each game.players as player, pi}
-                    <!-- Player group header -->
-                    <tr class="{pi > 0 ? 'border-t' : ''} border-card-edge bg-zebra-2">
-                        <td colspan="99" class="px-5 py-3">
-                            <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 rounded-full bg-card-edge overflow-hidden shrink-0">
-                                    {#if leaderPortrait(player.leader)}
-                                        <img src={leaderPortrait(player.leader)!} alt=""
-                                             class="h-full w-full object-cover"
-                                             onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-                                    {:else if player.leader}
-                                        <div class="h-full w-full flex items-center justify-center text-font-dimest text-[10px] font-bold select-none">?</div>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <a href="/profile/{player.player_id}"
-                                       class="text-sm font-semibold {player.winner ? 'text-font-clear' : 'text-font-dim'} hover:text-primary transition-colors duration-150">
-                                        {player.name}
-                                        {#if player.winner}
-                                            <img src={universalv} alt="" class="inline h-4 opacity-70 ml-1 mb-0.5" />
-                                        {/if}
-                                    </a>
-                                    {#if player.pseudo_name}
-                                        <div class="text-xs text-font-dimest mt-0.5">{player.pseudo_name}</div>
-                                    {/if}
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {#each player.cities as city}
-                        <tr class="border-t border-card-edge hover:bg-select transition-colors duration-100">
-                            <td class="w-4"></td>
-                            <td class="py-2 w-52 max-w-52 whitespace-nowrap overflow-hidden text-ellipsis">
-                                <span class="flex items-center">
-                                    <div class="h-5 w-5 p-0.5 rounded-full bg-select overflow-hidden mr-2 shrink-0">
-                                        <img src={cityIcon} alt="" />
+                {#if player.cities.length > 0}
+                    <!-- City cards. Glanceable info up front; full yields on hover. -->
+                    <div class="grid gap-2.5 p-3" style="grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));">
+                        {#each player.cities as city}
+                            {@const cname = normaliseCityName(city.name)}
+                            {@const relIcon = cityReligionIcon(city)}
+                            {@const relColor = city.religion_color ?? 'var(--color-font-dimer)'}
+                            {@const relName = religionName(city)}
+                            <Tooltip class="w-full" placement="top">
+                                {#snippet children()}
+                                    <div class="flex h-full w-full items-center gap-3 rounded-xl border border-card-edge bg-card-2 px-3 py-2 transition-colors duration-100 hover:border-card-edge-2 hover:bg-select">
+                                        <div class="h-9 w-9 shrink-0 rounded-full bg-select p-1.5">
+                                            <img src={cityIcon} alt="" class="h-full w-full" />
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="truncate text-sm font-medium text-font-dim">{cname}</span>
+                                                {#if relIcon}
+                                                    <span class="inline-block h-[23px] w-[23px] shrink-0" title={relName}
+                                                          style="background-color:{relColor};-webkit-mask:url({relIcon}) center/contain no-repeat;mask:url({relIcon}) center/contain no-repeat;"></span>
+                                                {/if}
+                                            </div>
+                                            <div class="mt-0.5 flex min-h-[1.125rem] items-center gap-2">
+                                                <span class="flex shrink-0 items-center gap-1 text-xs text-font-dimer">
+                                                    <img src={populationIcon} alt="pop" class="h-3.5" />
+                                                    <span class="tabular-nums font-semibold">{fmt(city.population)}</span>
+                                                </span>
+                                                {#if city.wonders?.length}
+                                                    <span class="ml-auto flex shrink-0 items-center gap-0.5">
+                                                        {#each city.wonders as wonder}
+                                                            {#if wonderIcon(wonder)}
+                                                                <img src={wonderIcon(wonder)!} alt={wonder} class="h-[18px] shrink-0 object-contain" />
+                                                            {:else}
+                                                                <span class="rounded border border-card-edge px-1 text-[10px] text-font-dimest">W</span>
+                                                            {/if}
+                                                        {/each}
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <span class="text-font-dim text-sm truncate" title={normaliseCityName(city.name)}>
-                                        {normaliseCityName(city.name)}
-                                    </span>
-                                    {#if city.religion && religionIcon(city.religion)}
-                                        <img src={religionIcon(city.religion)!} alt={city.religion}
-                                             class="shrink-0 h-7 ml-2"
-                                             style="filter: sepia(1) brightness(0.8) saturate(20) hue-rotate(348deg);"
-                                             title={city.religion} />
-                                    {/if}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="flex items-center gap-1 overflow-hidden py-1">
-                                    {#if city.wonders}
-                                        {#each city.wonders as wonder}
-                                            {#if wonderIcon(wonder)}
-                                                <img src={wonderIcon(wonder)!} alt={wonder} title={wonder} class="h-7 object-contain" />
-                                            {:else}
-                                                <span class="text-xs border border-card-edge rounded px-1 text-font-dimest" title={wonder}>W</span>
-                                            {/if}
-                                        {/each}
-                                    {/if}
-                                </div>
-                            </td>
-                            <td class="w-6"></td>
-                            <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={populationIcon} alt="" class="h-5 shrink-0" /><span class="text-font-clear  text-sm font-bold tabular-nums">{fmt(city.population)}</span></span></td>
-                            <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={scienceIcon}    alt="" class="h-5 shrink-0" /><span class="text-science    text-sm font-bold tabular-nums">{fmt(Math.round(city.science))}</span></span></td>
-                            <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={cultureIcon}    alt="" class="h-5 shrink-0" /><span class="text-culture    text-sm font-bold tabular-nums">{fmt(Math.round(city.culture))}</span></span></td>
-                            <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={foodIcon}       alt="" class="h-5 shrink-0" /><span class="text-food       text-sm font-bold tabular-nums">{fmt(Math.round(city.food))}</span></span></td>
-                            <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={productionIcon} alt="" class="h-5 shrink-0" /><span class="text-production text-sm font-bold tabular-nums">{fmt(Math.round(city.production))}</span></span></td>
-                            <td class="pr-2 py-2"><span class="flex items-center justify-end gap-0.5"><img src={goldIcon}       alt="" class="h-5 shrink-0" /><span class="text-gold       text-sm font-bold tabular-nums">{fmt(Math.round(city.gold))}</span></span></td>
-                            <td class="pr-3 py-2"><span class="flex items-center justify-end gap-0.5"><img src={faithIcon}      alt="" class="h-5 shrink-0" /><span class="text-faith      text-sm font-bold tabular-nums">{fmt(Math.round(city.faith))}</span></span></td>
-                            <td class="w-4"></td>
-                        </tr>
-                    {/each}
-                {/each}
-            </tbody>
-        </table>
+                                {/snippet}
+                                {#snippet content()}
+                                    <div class="flex flex-col gap-2 px-0.5 py-0.5">
+                                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                                            {#each cityYieldCols as col}
+                                                {@const raw = (city as any)[col.key]}
+                                                <span class="flex items-center justify-between gap-3">
+                                                    <span class="flex items-center gap-1.5 text-font-dimer">
+                                                        <img src={col.icon} alt="" class="h-3.5" />{col.label}
+                                                    </span>
+                                                    <span class="{col.cls} font-bold tabular-nums">{fmt(raw == null ? null : Math.round(raw))}</span>
+                                                </span>
+                                            {/each}
+                                        </div>
+                                        {#if relName || relIcon}
+                                            <div class="flex items-center gap-1.5 border-t border-card-edge pt-1.5 text-[11px]">
+                                                {#if relIcon}
+                                                    <span class="inline-block h-[22px] w-[22px] shrink-0"
+                                                          style="background-color:{relColor};-webkit-mask:url({relIcon}) center/contain no-repeat;mask:url({relIcon}) center/contain no-repeat;"></span>
+                                                {/if}
+                                                <span class="text-font-dimest">Religion</span>
+                                                <span class="ml-auto italic" style="color:{relColor};">{relName || '—'}</span>
+                                            </div>
+                                        {/if}
+                                        {#if city.wonders?.length}
+                                            <div class="flex flex-wrap items-center gap-1 border-t border-card-edge pt-1.5">
+                                                {#each city.wonders as wonder}
+                                                    {#if wonderIcon(wonder)}
+                                                        <span class="flex items-center gap-1 text-[10px] text-font-dimer">
+                                                            <img src={wonderIcon(wonder)!} alt="" class="h-4 object-contain" />{wonder}
+                                                        </span>
+                                                    {/if}
+                                                {/each}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                {/snippet}
+                            </Tooltip>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+        {/each}
     </div>
     {/if}
 </div>

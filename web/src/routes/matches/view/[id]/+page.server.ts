@@ -63,12 +63,17 @@ export const load: PageServerLoad = async ({ params }) => {
                     'faith',               gp.faith,
                     'tourism',             gp.tourism,
                     'favor',               gp.favor,
+                    'founded_religion',        gp.founded_religion,
+                    'founded_religion_icon',   gp.founded_religion_icon,
+                    'founded_religion_color',  gp.founded_religion_color,
                     'cities',              (
                         SELECT COALESCE(json_agg(
                             json_build_object(
                                 'name', c.name,
                                 'population', c.population,
                                 'religion', c.religion,
+                                'religion_icon', c.religion_icon,
+                                'religion_color', c.religion_color,
                                 'wonders', c.wonders,
                                 'food', c.food,
                                 'production', c.production,

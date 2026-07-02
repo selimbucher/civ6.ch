@@ -28,7 +28,7 @@
         }
     }
 
-    let { form } = $props();
+    let { form }: { form: any } = $props();
 </script>
 
 <!-- Mobile: fills space below header/nav -->
@@ -72,8 +72,15 @@
 </div>
 
 <!-- Desktop -->
-<div class="hidden md:flex flex-col flex-1 py-32 px-64 gap-2">
-    <form method="POST" enctype="multipart/form-data" class="flex flex-col flex-1">
+<div class="mx-auto hidden w-full max-w-3xl flex-1 flex-col gap-5 px-6 py-14 md:flex">
+    <div class="flex flex-col gap-1.5 text-center">
+        <h1 class="font-fancy text-3xl font-bold text-font-clear">Upload a Game</h1>
+        <p class="text-sm text-font-dimer">
+            Drop in a <span class="text-font-dim">.Civ6Save</span> and we'll parse the scoreboard, update ratings and hand out
+            the achievements you've earned (or disgraced yourself with).
+        </p>
+    </div>
+    <form method="POST" enctype="multipart/form-data" class="flex min-h-[22rem] flex-col flex-1">
         <div
             role="button"
             tabindex="0"
@@ -107,10 +114,11 @@
         </div>
         <input bind:this={inputEl} type="file" name="save" accept=".Civ6Save" class="hidden" onchange={onInput} />
     </form>
-    {#if form?.result}
-        <pre>{JSON.stringify(form.result, null, 2)}</pre>
-    {/if}
     {#if form?.error}
-        <span class="text-font-bad text-lg">{form.error}</span>
+        <span class="text-center text-lg text-font-bad">{form.error}</span>
     {/if}
+    <p class="text-center text-xs text-font-dimest">
+        Saves live in <span class="text-font-dimer">Documents\My Games\Sid Meier's Civilization VI\Saves\</span> ·
+        we only read the scoreboard, never your strategy.
+    </p>
 </div>

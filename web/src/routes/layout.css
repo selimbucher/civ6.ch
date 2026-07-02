@@ -73,6 +73,10 @@ select:focus-visible {
 @theme {
     --text-m: 1.05rem;
 
+    /* Shared max content width — keeps pages from stretching edge-to-edge on
+       wide (FullHD / WQHD / ultrawide) displays. Used as `max-w-page`. */
+    --container-page: 1600px;
+
     --color-font: hsl(0deg 0% 88%);
     --color-font-clear: hsl(0deg 0% 100%);
     --color-font-dim: hsl(0deg 0% 85%);
