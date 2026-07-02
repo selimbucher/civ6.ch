@@ -1,5 +1,7 @@
 package civ6save
 
+import "fmt"
+
 // CityState is the parsed state for one city at the current turn.
 type CityState struct {
 	ID         int
@@ -112,9 +114,39 @@ type ReligionState struct {
 	FounderPlayer int
 	Symbol        uint32
 	Name          string
+	R, G, B       float32 // display colour (0–1 per channel) as stored in the save
 	Beliefs       []uint32
 	Buildings     []uint32
 	Units         []uint32
+}
+
+// ColorHex returns the religion's display colour as "#rrggbb", brightened so it
+// stays legible on a dark background. The stored colours are often quite dark, so
+// we scale the brightest channel up to full while preserving the hue. Returns ""
+// when the colour is effectively black (unset), so callers can fall back.
+func (rs ReligionState) ColorHex() string {
+	max := rs.R
+	if rs.G > max {
+		max = rs.G
+	}
+	if rs.B > max {
+		max = rs.B
+	}
+	if max < 0.02 {
+		return ""
+	}
+	scale := 1.0 / max
+	chan8 := func(f float32) int {
+		v := int(float64(f)*float64(scale)*255 + 0.5)
+		if v < 0 {
+			v = 0
+		}
+		if v > 255 {
+			v = 255
+		}
+		return v
+	}
+	return fmt.Sprintf("#%02x%02x%02x", chan8(rs.R), chan8(rs.G), chan8(rs.B))
 }
 
 // GameSettings holds lobby/setup parameters read from the pre-compressed save header.

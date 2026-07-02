@@ -277,7 +277,9 @@ func parseReligions(r *reader) ([]ReligionState, error) {
 		r.skip(4)
 		symbol := r.readU32()
 		founder := int(r.readU32())
-		r.skip(12)
+		// The religion definition carries its display colour as three floats
+		// (RGB, 0–1) — the colour the player picked when founding it.
+		colR, colG, colB := r.readFloat(), r.readFloat(), r.readFloat()
 		name := r.readString()
 
 		beliefCount := int(r.readU32())
@@ -303,6 +305,9 @@ func parseReligions(r *reader) ([]ReligionState, error) {
 			FounderPlayer: founder,
 			Symbol:        symbol,
 			Name:          name,
+			R:             colR,
+			G:             colG,
+			B:             colB,
 			Beliefs:       beliefs,
 			Buildings:     buildings,
 			Units:         units,

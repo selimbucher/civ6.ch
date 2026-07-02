@@ -391,7 +391,7 @@ func parseSave(path string, debug bool) {
 			p.Index, p.Team, p.Eliminated, p.SteamID, p.IColor, p.Pseudo, p.Leader,
 			civ6save.PlayerColor(p.Leader, p.IColor))
 	}
-	playerColors := civ6save.BuildPlayerColors(players)
+	playerColors := civ6save.BuildPlayerColorPairs(players)
 
 	// ── decompress ───────────────────────────────────────────────────────────
 	decompressed, err := civ6save.Decompress(data)
@@ -418,11 +418,11 @@ func parseSave(path string, debug bool) {
 	for owner, count := range ownerCount {
 		if pc, ok := playerColors[int(owner)]; ok {
 			log.Printf("owner[%d]: %d tiles → rgb(%d,%d,%d)",
-				owner, count, pc.R, pc.G, pc.B)
+				owner, count, pc.Primary.R, pc.Primary.G, pc.Primary.B)
 		}
 	}
 
-	img := civ6save.RenderMap(m, playerColors)
+	img := civ6save.RenderMap(m, playerColors, civ6save.CityStateColors(data))
 	f, err := os.Create("/tmp/map.png")
 	if err != nil {
 		log.Fatal(err)

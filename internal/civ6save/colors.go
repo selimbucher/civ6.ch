@@ -100,6 +100,92 @@ func leaderCRC(s string) uint32 {
 	return ^crc32.ChecksumIEEE([]byte(s))
 }
 
+// ColorPair is a player's map colours: Primary fills their territory, Secondary
+// outlines it — the two-tone scheme Civ6 uses for empires.
+type ColorPair struct {
+	Primary   color.RGBA
+	Secondary color.RGBA
+}
+
+// leaderJerseyPairs returns a leader's jersey colour pairs (primary + secondary)
+// in order, or nil for an unknown/modded leader. Each table slot is 8 bytes:
+// primary RGBA then secondary RGBA.
+func leaderJerseyPairs(leader string) []ColorPair {
+	if idx := strings.LastIndex(leader, "::"); idx != -1 {
+		leader = leader[idx+2:]
+	}
+	c, ok := leaderColors[leaderCRC(leader)]
+	if !ok {
+		return nil
+	}
+	out := make([]ColorPair, 0, len(c)/8)
+	for o := 0; o+8 <= len(c); o += 8 {
+		out = append(out, ColorPair{
+			Primary:   color.RGBA{c[o], c[o+1], c[o+2], 255},
+			Secondary: color.RGBA{c[o+4], c[o+5], c[o+6], 255},
+		})
+	}
+	return out
+}
+
+// contrastEdge picks a legible outline colour for a fill that has no defined
+// secondary (a dodged standard colour): near-white for dark fills, near-black
+// for light ones.
+func contrastEdge(c color.RGBA) color.RGBA {
+	lum := 0.299*float64(c.R) + 0.587*float64(c.G) + 0.114*float64(c.B)
+	if lum < 140 {
+		return color.RGBA{245, 245, 245, 255}
+	}
+	return color.RGBA{20, 20, 24, 255}
+}
+
+// BuildPlayerColorPairs mirrors BuildPlayerColors but also resolves each player's
+// secondary (outline) colour. When a player keeps one of their leader's jerseys,
+// that jersey's own secondary is used; when they dodge into the standard pool a
+// contrasting outline is chosen.
+func BuildPlayerColorPairs(players []Player) map[int]ColorPair {
+	sorted := make([]Player, len(players))
+	copy(sorted, players)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Index < sorted[j].Index })
+
+	type rgb struct{ r, g, b uint8 }
+	usedExact := map[rgb]bool{}
+	usedFamilies := map[string]bool{}
+
+	m := make(map[int]ColorPair, len(players))
+	for _, p := range sorted {
+		var chosen ColorPair
+		picked := false
+
+		for _, j := range leaderJerseyPairs(p.Leader) {
+			if !usedExact[rgb{j.Primary.R, j.Primary.G, j.Primary.B}] {
+				chosen, picked = j, true
+				break
+			}
+		}
+		if !picked {
+			for _, sc := range standardColors {
+				if !usedFamilies[sc.family] {
+					prim := color.RGBA{sc.r, sc.g, sc.b, 255}
+					chosen, picked = ColorPair{Primary: prim, Secondary: contrastEdge(prim)}, true
+					break
+				}
+			}
+		}
+		if !picked {
+			prim := PlayerColor(p.Leader, 0)
+			chosen = ColorPair{Primary: prim, Secondary: contrastEdge(prim)}
+		}
+
+		usedExact[rgb{chosen.Primary.R, chosen.Primary.G, chosen.Primary.B}] = true
+		if fam := hueFamily(chosen.Primary); fam != "" {
+			usedFamilies[fam] = true
+		}
+		m[p.Index] = chosen
+	}
+	return m
+}
+
 // standardColor is one of Civ6's 28 PlayerStandardColors (from the game's
 // Base/Assets/UI/Colors/PlayerStandardColors.xml): a hue family plus its RGB.
 type standardColor struct {

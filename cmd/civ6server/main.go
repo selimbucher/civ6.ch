@@ -170,8 +170,8 @@ func (s *server) storeFiles(gameID int, raw, decompressed []byte, players []civ6
 		log.Printf("parse map %d: %v", gameID, err)
 		return
 	}
-	colors := civ6save.BuildPlayerColors(players)
-	img := civ6save.RenderMap(m, colors)
+	colors := civ6save.BuildPlayerColorPairs(players)
+	img := civ6save.RenderMap(m, colors, civ6save.CityStateColors(raw))
 
 	var mapBuf bytes.Buffer
 	if err := webp.Encode(&mapBuf, img, &webp.Options{Lossless: true}); err != nil {
@@ -400,15 +400,18 @@ func (s *server) handleUpdateSave(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		ps := state.Players[np.Index]
+		frName, frIcon, frColor := civ6save.FoundedReligionFields(state, np.Index)
 		tx.Exec(r.Context(), `
 			UPDATE game_players SET
 				score=$1, population=$2, science=$3, culture=$4,
-				food=$5, production=$6, gold=$7, faith=$8, tourism=$9, favor=$10
-			WHERE id=$11`,
+				food=$5, production=$6, gold=$7, faith=$8, tourism=$9, favor=$10,
+				founded_religion=$11, founded_religion_icon=$12, founded_religion_color=$13
+			WHERE id=$14`,
 			ps.Score(), totalPopulation(ps),
 			roundToInt(ps.Science), roundToInt(ps.Culture),
 			roundToInt(ps.Food), roundToInt(ps.Production),
 			ps.Gold, ps.Faith, roundToInt(ps.Tourism), ps.DiploFavor,
+			nullStr(frName), nullStr(frIcon), nullStr(frColor),
 			gpID,
 		)
 	}
@@ -551,17 +554,21 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 			score = intPtr(0)
 		}
 
+		frName, frIcon, frColor := civ6save.FoundedReligionFields(state, p.Index)
+
 		var gpID int
 		err = tx.QueryRow(ctx, `
 			INSERT INTO game_players (
 				game_id, team, player_index, leader, pseudo_name, score,
 				population, science, culture, food, production, gold, faith, tourism, favor,
-				mining_researched, eliminated, steam_id, left_game
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+				mining_researched, eliminated, steam_id, left_game,
+				founded_religion, founded_religion_icon, founded_religion_color
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
 			RETURNING id`,
 			gameID, int16(p.Team), int16(p.Index), leader, nullStr(p.Pseudo), score,
 			population, science, culture, food, production, gold, faith, tourism, favor,
 			miningResearched, eliminated, nullStr(p.SteamID), leftGame,
+			nullStr(frName), nullStr(frIcon), nullStr(frColor),
 		).Scan(&gpID)
 		if err != nil {
 			return 0, err
@@ -570,11 +577,17 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 		if state != nil && state.Players[p.Index] != nil {
 			ps := state.Players[p.Index]
 			for _, c := range ps.Cities {
-				var relName *string
+				var relName, relIcon, relColor *string
 				if c.Religion != 0 && c.Religion != 0xFFFFFFFF {
 					if rel := state.ReligionBySymbol(c.Religion); rel != nil {
 						name := rel.Name
 						relName = &name
+						if hex := rel.ColorHex(); hex != "" {
+							relColor = &hex
+						}
+					}
+					if key := civ6save.ReligionIconKey(c.Religion); key != "" {
+						relIcon = &key
 					}
 				}
 				wonders := c.Wonders
@@ -583,10 +596,10 @@ func insertGame(ctx context.Context, pool *pgxpool.Pool, settings civ6save.GameS
 				}
 				_, err = tx.Exec(ctx, `
 					INSERT INTO game_player_cities (
-						game_player_id, name, population, religion, wonders,
+						game_player_id, name, population, religion, religion_icon, religion_color, wonders,
 						food, production, gold, science, culture, faith
-					) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-					gpID, c.Name, c.Population, relName, wonders,
+					) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+					gpID, c.Name, c.Population, relName, relIcon, relColor, wonders,
 					c.Food, c.Production, c.Gold, c.Science, c.Culture, c.Faith,
 				)
 				if err != nil {
