@@ -210,8 +210,8 @@
 						{#if data.league}
 							<span class="text-sm text-font-dim">{data.league.games.toLocaleString('de-CH')} games recorded</span>
 							<span class="text-sm text-font-dim">{data.league.turns.toLocaleString('de-CH')} turns endured</span>
+							<span class="text-sm text-font-dim">{data.league.denouncements.toLocaleString('de-CH')} {data.league.denouncements === 1 ? 'denouncement' : 'denouncements'} in force</span>
 						{/if}
-						<span class="text-sm text-font-dim">0 wars ongoing&nbsp;<span class="text-font-dimest">(unverified)</span></span>
 					</div>
 				</div>
 				<div class="mt-10 flex flex-col gap-1.5 border-t border-card-edge pt-5 sm:flex-row sm:items-baseline sm:justify-between">
