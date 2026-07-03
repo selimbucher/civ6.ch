@@ -1,9 +1,6 @@
 <script lang="ts">
 	import bg from '$lib/assets/hero.webp';
 	import { Swords } from '@lucide/svelte';
-	import { heroQuotes, daily } from '$lib/flavor';
-
-	const quote = daily(heroQuotes);
 </script>
 
 <div class="flex absolute items-center justify-center overflow-hidden h-screen w-full top-0">
@@ -51,10 +48,6 @@
 				Matches
 			</a>
 		</div>
-
-		<p class="mt-12 max-w-md text-xs italic text-white/50" style="text-shadow: 0 1px 4px #000000cc;">
-			“{quote.text}”<span class="not-italic text-white/35"> — {quote.by}</span>
-		</p>
 	</div>
 </div>
 

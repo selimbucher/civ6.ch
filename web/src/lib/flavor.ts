@@ -12,14 +12,6 @@ export const mottos = [
 	'Loyalty pressure in this region is high.'
 ];
 
-export const heroQuotes = [
-	{ text: 'I came for the diplomacy. I stayed for the betrayal.', by: 'a founding member' },
-	{ text: 'Just one more turn.', by: 'everyone, at 2 a.m.' },
-	{ text: 'The early game is my strongest phase, in that I still have hope.', by: 'rating withheld' },
-	{ text: 'We are a very serious league.', by: 'the very serious league' },
-	{ text: 'History will judge us kindly. We maintain the records ourselves.', by: 'Hall of Records' }
-];
-
 export function daily<T>(list: T[]): T {
 	const day = Math.floor(Date.now() / 86_400_000);
 	return list[day % list.length];
