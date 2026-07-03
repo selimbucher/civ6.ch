@@ -53,6 +53,17 @@
 	const motto = daily(mottos);
 	// The home page is a full-screen splash; a footer would overlay the hero.
 	const showFooter = $derived(page.route.id !== '/');
+	const isActive = (href: string) => page.url.pathname === href || page.url.pathname.startsWith(href + '/');
+
+	// Social embeds: match pages share their rendered map instead of the
+	// generic banner, so a pasted link shows the actual game.
+	const ogUrl = $derived(`https://civ6.ch${page.url.pathname}`);
+	const ogImage = $derived.by(() => {
+		if (page.route.id === '/matches/view/[id]' && (page.data as any)?.game?.has_map) {
+			return `https://civ6.ch/files/maps/${(page.data as any).game.id}`;
+		}
+		return 'https://civ6.ch/og.png';
+	});
 
 	onMount(() => {
 		console.log(
@@ -76,16 +87,18 @@
 	<!-- Open Graph / social sharing -->
 	<meta property="og:type" content="website" />
 	<meta property="og:site_name" content="civ6.ch" />
-	<meta property="og:title" content="civ6.ch — Swiss Civilization VI League" />
+	<meta property="og:title" content={pageTitle} />
 	<meta property="og:description" content="Live ratings, match history, statistics and dubious achievements." />
-	<meta property="og:url" content="https://civ6.ch" />
-	<meta property="og:image" content="https://civ6.ch/og.png" />
-	<meta property="og:image:width" content="1200" />
-	<meta property="og:image:height" content="630" />
+	<meta property="og:url" content={ogUrl} />
+	<meta property="og:image" content={ogImage} />
+	{#if ogImage.endsWith('/og.png')}
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+	{/if}
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="civ6.ch — Swiss Civilization VI League" />
+	<meta name="twitter:title" content={pageTitle} />
 	<meta name="twitter:description" content="Live ratings, match history, statistics and dubious achievements." />
-	<meta name="twitter:image" content="https://civ6.ch/og.png" />
+	<meta name="twitter:image" content={ogImage} />
 </svelte:head>
 
 <svelte:window onclick={() => dropdownOpen = false} />
@@ -96,9 +109,11 @@
 		<a href="/" class="text-3xl font-bold z-10 hover:text-font-clear transition-colors duration-120 ease-out font-fancy" style="text-shadow: 1px 1px 0px var(--color-primary-shadow);">civ6.ch</a>
 		<nav class="absolute left-0 hidden md:flex w-full gap-6 justify-center p-1 z-9">
 			{#each links as link}
-				<a href={link.href} class="relative text-m font-semibold tracking-wider hover:text-font-clear transition-colors duration-150 ease-in-out group font-fancy">
+				{@const active = isActive(link.href)}
+				<a href={link.href} aria-current={active ? 'page' : undefined}
+				   class="relative text-m font-semibold tracking-wider hover:text-font-clear transition-colors duration-150 ease-in-out group font-fancy {active ? 'text-font-clear' : ''}">
 					{link.label}
-					<span class="absolute bottom-0 left-0 w-full h-0.5 rounded-full bg-font-clear scale-x-0 group-hover:scale-x-100 transition-transform duration-150 ease-in-out"></span>
+					<span class="absolute bottom-0 left-0 w-full h-0.5 rounded-full transition-transform duration-150 ease-in-out {active ? 'bg-primary scale-x-100' : 'bg-font-clear scale-x-0 group-hover:scale-x-100'}"></span>
 				</a>
 			{/each}
 		</nav>
@@ -162,8 +177,9 @@
 	<!-- Mobile nav strip -->
 	<nav class="md:hidden flex border-b border-card-edge">
 		{#each links as link}
-			<a href={link.href}
-			   class="flex-1 text-center font-fancy text-xs py-3 text-font-dimest hover:text-font-clear transition-colors duration-150">
+			{@const active = isActive(link.href)}
+			<a href={link.href} aria-current={active ? 'page' : undefined}
+			   class="flex-1 text-center font-fancy text-xs py-3 transition-colors duration-150 {active ? 'text-primary border-b-2 border-primary' : 'text-font-dimest hover:text-font-clear'}">
 				{link.label}
 			</a>
 		{/each}
@@ -199,7 +215,7 @@
 					</div>
 				</div>
 				<div class="mt-10 flex flex-col gap-1.5 border-t border-card-edge pt-5 sm:flex-row sm:items-baseline sm:justify-between">
-					<span class="text-xs text-font-dimest">© {new Date().getFullYear()} civ6.ch — all rights reserved, all wonders sniped.</span>
+					<span class="text-xs text-font-dimest">© {new Date().getFullYear()} civ6.ch — all rights reserved, all wonders reserved.</span>
 					<span class="text-xs italic text-font-dimest">{motto}</span>
 				</div>
 			</div>

@@ -18,11 +18,8 @@
     } = $props();
 </script>
 
-<div
-    class="relative overflow-hidden rounded-2xl border border-card-edge bg-card shadow-md shadow-darken {cls}"
->
-    <div class="absolute left-0 top-0 h-0.75 w-full bg-gradient-primary"></div>
-    <div class="flex items-center justify-between gap-4 px-6 py-6 md:px-10 md:py-8">
+<div class="relative {cls}">
+    <div class="flex items-end justify-between gap-4 border-b border-card-edge px-1 pb-5 pt-2">
         <div class="min-w-0">
             <h1
                 class="font-fancy text-3xl font-bold tracking-wide text-font-clear md:text-4xl"
@@ -37,7 +34,7 @@
         {#if actions}
             <div class="shrink-0">{@render actions()}</div>
         {:else if icon}
-            <div class="shrink-0 text-primary">{@render icon()}</div>
+            <div class="shrink-0 text-primary/60">{@render icon()}</div>
         {/if}
     </div>
 </div>

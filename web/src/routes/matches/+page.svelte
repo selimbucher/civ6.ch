@@ -127,7 +127,7 @@
             class="group flex items-center gap-3 rounded-xl border border-card-edge bg-card px-4 py-3 shadow-sm shadow-darken hover:border-primary/40 hover:bg-select transition-colors duration-150"
           >
             {#if g.has_map}
-              <img src="/files/maps/{g.id}" alt="" class="h-10 w-20 rounded-lg object-cover shrink-0" />
+              <img src="/files/maps/{g.id}" alt="" loading="lazy" decoding="async" class="h-10 w-20 rounded-lg object-cover shrink-0" />
             {:else}
               <div class="h-10 w-20 rounded-lg shrink-0 bg-card-2 border border-card-edge flex items-center justify-center">
                 <Map strokeWidth={1} class="h-4 w-4 text-font-dimest" />
@@ -194,7 +194,7 @@
 
       <!-- Map thumbnail -->
       {#if game.has_map}
-        <img src="/files/maps/{game.id}" alt="" class="h-44 w-full md:w-80 object-cover md:shrink-0" />
+        <img src="/files/maps/{game.id}" alt="" loading="lazy" decoding="async" class="h-44 w-full md:w-80 object-cover md:shrink-0" />
       {:else}
         <div class="rounded-xl h-32 md:h-44 w-full md:w-80 md:shrink-0 bg-card-2 border border-card-edge flex flex-col items-center justify-center gap-1.5 text-font-dimest">
           <Map strokeWidth={1} class="h-6 w-6" />

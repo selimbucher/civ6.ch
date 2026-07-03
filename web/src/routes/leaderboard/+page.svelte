@@ -37,7 +37,7 @@
 
 <div class="px-4 md:px-12 pb-12 pt-2 flex flex-col gap-6 w-full">
 
-  <PageHeader title="Leaderboard" subtitle="Glory, shame, and the cold arithmetic of Glicko ratings.">
+  <PageHeader title="Leaderboard" subtitle="The official pecking order — updated after every match, disputed immediately.">
     {#snippet icon()}
       <Trophy strokeWidth={1.5} class="h-10 w-10" />
     {/snippet}
