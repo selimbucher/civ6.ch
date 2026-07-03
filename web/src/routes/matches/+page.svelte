@@ -105,7 +105,7 @@
 </script>
 
 <div class="mx-3 md:mx-12 mb-5">
-  <PageHeader title="Matches" subtitle="Every conquest, collapse and questionable alliance — newest first.">
+  <PageHeader title="Matches" subtitle="Every conquest, collapse and questionable alliance.">
     {#snippet icon()}
       <Swords strokeWidth={1.5} class="h-10 w-10" />
     {/snippet}
