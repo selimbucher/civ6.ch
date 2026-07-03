@@ -4,15 +4,12 @@
     let {
         title,
         subtitle = '',
-        icon,
         actions,
         class: cls = ''
     }: {
         title: string;
         subtitle?: string;
-        /** Decorative icon shown on the right (ignored if `actions` is set). */
-        icon?: Snippet;
-        /** Right-hand content (e.g. a count or controls). Overrides `icon`. */
+        /** Right-hand content (e.g. a count or controls). */
         actions?: Snippet;
         class?: string;
     } = $props();
@@ -33,8 +30,6 @@
         </div>
         {#if actions}
             <div class="shrink-0">{@render actions()}</div>
-        {:else if icon}
-            <div class="shrink-0 text-primary/60">{@render icon()}</div>
         {/if}
     </div>
 </div>

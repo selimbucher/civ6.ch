@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { Flame, Medal, Trophy } from '@lucide/svelte';
+  import { Flame, Medal } from '@lucide/svelte';
   import Avatar from '$lib/Avatar.svelte';
   import PageHeader from '$lib/PageHeader.svelte';
   import Tooltip from '$lib/Tooltip.svelte';
@@ -37,11 +37,7 @@
 
 <div class="px-4 md:px-12 pb-12 pt-2 flex flex-col gap-6 w-full">
 
-  <PageHeader title="Leaderboard" subtitle="The official pecking order.">
-    {#snippet icon()}
-      <Trophy strokeWidth={1.5} class="h-10 w-10" />
-    {/snippet}
-  </PageHeader>
+  <PageHeader title="Leaderboard" subtitle="The official pecking order." />
 
   <!-- ── Podium ───────────────────────────────────────────────────────── -->
   <div class="flex justify-center pt-2">

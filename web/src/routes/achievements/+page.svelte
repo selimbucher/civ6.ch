@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Star, Award } from '@lucide/svelte';
+    import { Star } from '@lucide/svelte';
     import PageHeader from '$lib/PageHeader.svelte';
 
     let { data } = $props();
@@ -27,11 +27,7 @@
 
 <div class="mx-4 md:mx-12 mb-12 flex flex-col gap-8">
 
-    <PageHeader title="Achievements" subtitle="Badges of honour and lasting monuments to incompetence.">
-        {#snippet icon()}
-            <Award strokeWidth={1.5} class="h-10 w-10" />
-        {/snippet}
-    </PageHeader>
+    <PageHeader title="Achievements" subtitle="Badges of honour and lasting monuments to incompetence." />
 
     <!-- ── Player scoreboard ────────────────────────────────────────────── -->
     <div class="rounded-2xl border border-card-edge bg-card shadow-md shadow-darken overflow-hidden">

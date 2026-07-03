@@ -10,11 +10,7 @@
         Sword, BookOpen, Palette, Zap, Globe, Flag,
         TrendingUp, TrendingDown, Clock, Gamepad2, Shield, Timer,
         Trophy, Users,
-
-		Medal,
-
-		Star
-
+        Medal
 
     } from '@lucide/svelte';
     import PageHeader from '$lib/PageHeader.svelte';
@@ -192,11 +188,7 @@
     <PageHeader
         title="Hall of Records"
         subtitle="A rigorous scientific analysis of competitive Civilization VI performance."
-    >
-        {#snippet icon()}
-            <Star strokeWidth={1.5} class="h-10 w-10" />
-        {/snippet}
-    </PageHeader>
+    />
 
     <!-- ── Global Stats ─────────────────────────────────────────────────── -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
