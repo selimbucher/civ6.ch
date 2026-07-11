@@ -4,7 +4,7 @@
 
 ![civ6.ch banner](web/static/og.png)
 
-A ranked ladder for a private Civ6 group: players upload their save files, the server parses the proprietary binary format directly (no game API — Firaxis doesn't have one), and every match feeds a Glicko-2 rating, a leaderboard, and a set of tongue-in-cheek achievements.
+A ranked ladder for a private Civ6 group: players upload their save files, the server parses the proprietary binary format directly, and every match feeds a Glicko-2 rating, a leaderboard, and a set of tongue-in-cheek achievements.
 
 ## What it does
 
@@ -22,7 +22,7 @@ A ranked ladder for a private Civ6 group: players upload their save files, the s
 
 ## Screenshots
 
-Map rendered entirely from a parsed save file — terrain, territory borders, and city-states:
+Map rendered entirely from a parsed save file — terrain, city yields, player stats, religion, and more:
 
 ![Rendered map](map-render.png)
 
