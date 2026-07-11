@@ -26,10 +26,6 @@ Map rendered entirely from a parsed save file — terrain, territory borders, an
 
 ![Rendered map](map-render.png)
 
-Player stats:
-
-![Player stats](statistics.png)
-
 ## License
 
 AGPL-3.0
