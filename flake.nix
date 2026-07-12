@@ -15,8 +15,9 @@
           pname = "civ6-web";
           version = "0.0.1";
           src = ./web;
-          fetcherVersion = 3;
-          hash = "sha256-VwBxXTfQzXhHdV1+37v9PEId8OdEj90xjMzfO/oHNBE=";
+          # 4 = SQLite-dump fetcher; 3 was dropped for pnpm >= 11 (nixpkgs 26.11)
+          fetcherVersion = 4;
+          hash = "sha256-akr4IDnTk10DMmXk01hKfTXuxvEfsBr5qXOtu4mpypM=";
         };
 
         web = pkgs.stdenv.mkDerivation {
